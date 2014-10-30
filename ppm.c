@@ -31,8 +31,8 @@
 #define PARAM_PREFIX_CLASS                "class-"
 
 
-#define PASSWORD_TOO_SHORT_SZ \
-  "Password for dn=\"%s\" is too short (%d/6)"
+#define PASSWORD_TOO_LONG_SZ \
+  "Password for dn=\"%s\" is too long (%d / %d)"
 #define PASSWORD_QUALITY_SZ \
   "Password for dn=\"%s\" does not pass required number of strength checks (%d of %d)"
 #define PASSWORD_CRITERIA \
@@ -62,7 +62,8 @@ typedef struct params {
 
 // allowed parameters loaded into configuration structure
 // it also contains the type of the corresponding value
-params allowedParameters[3] = {
+params allowedParameters[4] = {
+    {"^maxLength", typeInt},
     {"^minQuality", typeInt},
     {"^forbiddenChars", typeStr},
     {"^class-.*", typeStr}
@@ -305,6 +306,7 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
     int mem_len = MEM_INIT_SZ;
     int numParam = 0; // Number of params in current configuration
 
+    int maxLength;
     int minQuality;
     char forbiddenChars[VALUE_MAX_LEN];
     int nForbiddenChars = 0;
@@ -317,6 +319,9 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
 
     /* Set default values */
     conf fileConf[CONF_MAX_SIZE] = {
+        {"maxLength", typeInt, {.iVal = 0}, 0, 0
+         }
+        ,
         {"minQuality", typeInt, {.iVal = DEFAULT_QUALITY}, 0, 0
          }
         ,
@@ -336,11 +341,12 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
          {.sVal = "<>,?;.:/!§ù%*µ^¨$£²&é~\"#'{([-|è`_\\ç^à@)]°=}+"}, 0, 1
          }
     };
-    numParam = 6;
+    numParam = 7;
 
     /* Read config file */
     read_config_file(fileConf, &numParam);
 
+    maxLength = getValue(fileConf, numParam, "maxLength")->iVal;
     minQuality = getValue(fileConf, numParam, "minQuality")->iVal;
     strcpy_safe(forbiddenChars,
                 getValue(fileConf, numParam, "forbiddenChars")->sVal,
@@ -351,6 +357,18 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
      * point granted if the password contains at least minForPoint characters for each class
      * It must contains at least min chars of each class
      * It must not contain any char in forbiddenChar */
+
+    if(maxLength != 0 && strlen(pPasswd) > maxLength) {
+      // constraint is not satisfied... goto fail
+      mem_len = realloc_error_message(&szErrStr, mem_len,
+                                      strlen(PASSWORD_TOO_LONG_SZ) +
+                                      strlen(pEntry->e_name.bv_val) + 
+                                      2 * sizeof(maxLength));
+      sprintf(szErrStr, PASSWORD_TOO_LONG_SZ, pEntry->e_name.bv_val,
+              (int)strlen(pPasswd), maxLength);
+      goto fail;
+      
+    }
 
     for (i = 0; i < strlen(pPasswd); i++) {
 

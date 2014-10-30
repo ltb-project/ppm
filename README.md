@@ -46,6 +46,8 @@ defined.
 - if a password contains any of the forbidden characters, then it is
 rejected.
 
+- if a password is too long, it can be rejected.
+
 
 Configuration file
 ------------------
@@ -68,6 +70,13 @@ The default configuration file is the following:
 # One point is granted for each class for which MIN_FOR_POINT criteria is fulfilled.
 # defines the minimum point numbers for the password to be accepted.
 minQuality 3
+
+# maxLength parameter
+# Format:
+# maxLength [NUMBER]
+# Description:
+# The password must not be more than [NUMBER] long. 0 means no limit is set.
+maxLength 0
 
 # forbiddenChars parameter
 # Format:
@@ -94,14 +103,16 @@ Example
 -------
 
 With this policy:
-
-	minQuality 4
-	forbiddenChars .?,
-	class-upperCase ABCDEFGHIJKLMNOPQRSTUVWXYZ 0 5
-	class-lowerCase abcdefghijklmnopqrstuvwxyz 0 12
-	class-digit 0123456789 0 1
-	class-special <>,?;.:/!§ù%*µ^¨$£²&é~"#'{([-|è`_\ç^à@)]°=}+ 0 1
-	class-myClass :) 1 1
+```
+minQuality 4
+forbiddenChars .?,
+maxLength 0
+class-upperCase ABCDEFGHIJKLMNOPQRSTUVWXYZ 0 5
+class-lowerCase abcdefghijklmnopqrstuvwxyz 0 12
+class-digit 0123456789 0 1
+class-special <>,?;.:/!§ù%*µ^¨$£²&é~"#'{([-|è`_\ç^à@)]°=}+ 0 1
+class-myClass :) 1 1``
+```
 
 the password:
 
@@ -111,6 +122,7 @@ is working, because,
 - it has 4 character classes validated : upper, lower, special, and myClass
 - it has no character among .?,
 - it has at least one character among : or )
+- there is no size constraint (maxLength of 0)
 
 
 Logs
@@ -125,6 +137,7 @@ A more detailed message is written to the server log.
 
 Server log:
 
+```
 Jul 27 20:09:14 machine slapd[20270]: ppm: Opening file /etc/openldap/ppm.conf
 Jul 27 20:09:14 machine slapd[20270]: ppm: Param = minQuality, value = 3, min = (null), minForPoint= (null)
 Jul 27 20:09:14 machine slapd[20270]: ppm:  Accepted replaced value: 3
@@ -143,6 +156,7 @@ Jul 27 20:09:14 machine slapd[20270]: ppm:  Accepted new value:
 Jul 27 20:09:14 machine slapd[20270]: ppm: 1 point granted for class class-upperCase
 Jul 27 20:09:14 machine slapd[20270]: ppm: 1 point granted for class class-lowerCase
 Jul 27 20:09:14 machine slapd[20270]: ppm: 1 point granted for class class-digit
+```
 
 
 TODO
@@ -152,6 +166,9 @@ TODO
 
 HISTORY
 -------
+* 2014-10-28 David Coutadeur <david.coutadeur@gmail.com>
+  Adding maxLength parameter
+  Version 1.2
 * 2014-07-27 David Coutadeur <david.coutadeur@gmail.com>
   Changing the configuration file and the configuration data structure
   Version 1.1
