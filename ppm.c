@@ -5,6 +5,7 @@
  */
 
 #include <stdlib.h>             // for type conversion, such as atoi...
+#include <regex.h>              // for matching allowedParameters / conf file
 #include <string.h>
 #include <ctype.h>
 #include <portable.h>
@@ -21,15 +22,13 @@
 #define DEFAULT_QUALITY                   3
 #define MEMORY_MARGIN                     50
 #define MEM_INIT_SZ                       64
-#define FILENAME_MAXLEN                   512
+#define FILENAME_MAX_LEN                   512
 
-#define STATICCONF_MAX_SIZE               2
-#define CLASS_MAX_SIZE                    10
-#define PARAM_MAXLEN                      16
-#define VALUE_MAXLEN                      60
+#define CONF_MAX_SIZE                      50
+#define PARAM_MAX_LEN                      16
+#define VALUE_MAX_LEN                      60
 
-#define PARAM_PREFIX_MIN_CRITERIA         "min-"
-#define PARAM_PREFIX_MINFORPOINT_CRITERIA "minForPoint-"
+#define PARAM_PREFIX_CLASS                "class-"
 
 
 #define PASSWORD_TOO_SHORT_SZ \
@@ -44,29 +43,51 @@
   "Bad password for dn=\"%s\" because %s"
 
 
+
+
+typedef union genValue {
+    int iVal;
+    char sVal[VALUE_MAX_LEN];
+} genValue;
+
+typedef enum {
+    typeInt,
+    typeStr
+} valueType;
+
+typedef struct params {
+    char param[PARAM_MAX_LEN];
+    valueType iType;
+} params;
+
+// allowed parameters loaded into configuration structure
+// it also contains the type of the corresponding value
+params allowedParameters[3] = {
+    {"^minQuality", typeInt},
+    {"^forbiddenChars", typeStr},
+    {"^class-.*", typeStr}
+};
+
+
+// configuration structure, containing a parameter, a value,
+// a corresponding min and minForPoint indicators if necessary
+// and a type for the value (typeInt or typeStr)
 typedef struct conf {
-    char param[PARAM_MAXLEN];
-    enum {
-        typeInt,
-        typeStr
-    } iType;
-    union genValue {
-        int iVal;
-        char sVal[VALUE_MAXLEN];
-    } value;
+    char param[PARAM_MAX_LEN];
+    valueType iType;
+    genValue value;
+    int min;
+    int minForPoint;
 } conf;
 
 
 int min(char *str1, char *str2);
-void fillValue(conf * fillConf, char *value);
-void fillParameter(char *word, char *classWord, char *value, conf * class,
-                   int *toFill);
-void load_config(char *word, char *value, conf * staticConf, conf * class,
-                 int *min, int *minForPoint);
-static void read_config_file(conf * staticConf, conf * class, int *min,
-                             int *minForPoint);
+static void read_config_file(conf * fileConf, int *numParam);
 int check_password(char *pPasswd, char **ppErrStr, Entry * pEntry);
-
+void storeEntry(char *param, char *value, valueType valType, 
+           char *min, char *minForPoint, conf * fileConf, int *numParam);
+int typeParam(char* param);
+genValue* getValue(conf *fileConf, int numParam, char* param);
 
 void
 strcpy_safe(char *dest, char *src, int length_dest)
@@ -79,165 +100,126 @@ strcpy_safe(char *dest, char *src, int length_dest)
     dest[n] = '\0';
 }
 
-void
-fillValue(conf * fillConf, char *value)
-{
-    switch ((*fillConf).iType) {
-    case typeInt:
-        (*fillConf).value.iVal = atoi(value);
-#if defined(DEBUG)
-        syslog(LOG_NOTICE, "ppm:  Accepted value: %d",
-               (*fillConf).value.iVal);
-#endif
-        break;
-    case typeStr:
-        strcpy_safe((*fillConf).value.sVal, value, VALUE_MAXLEN);
-#if defined(DEBUG)
-        syslog(LOG_NOTICE, "ppm:  Accepted value: %s",
-               (*fillConf).value.sVal);
-#endif
-        break;
-    }
-}
-
-/* Function that save a parameter in the corresponding conf table
- * input: word: the parameter label to save
- *        classWord: the corresponding parameter name in the class table (without the min- or minForPoint- prefix)
- *        value: the value to save
- *        class: the class table
- *        toFill: the parameter table to fill. Can be min, minForPoint, or NULL
- *                if NULL, then means class is to be filled
- * output: nothing (the toFill conf table is completed with the new value, and
- *         the class parameter can be updated accordingly)
- *         If there is no place left in the *toFill table, then nothing is done !
- * */
-void
-fillParameter(char *word, char *classWord, char *value, conf * class,
-                   int *toFill)
-{
-    int classFound = 0;
-    int i = 0, indexEmpty = CLASS_MAX_SIZE;
-
-    while ((i < CLASS_MAX_SIZE) && (classFound == 0)) {
-        if ((strlen(classWord) == strlen(class[i].param))
-            && (strncmp(classWord, class[i].param, strlen(class[i].param)) ==
-                0)) {
-            if (toFill == NULL) {
-                fillValue(&class[i], value);
-            } else {
-                toFill[i] = atoi(value);
-#if defined(DEBUG)
-                syslog(LOG_NOTICE, "ppm:  Accepted value: %d",
-                       toFill[i]);
-#endif
-            }
-
-            classFound = 1;
-        }
-        if ((strlen(class[i].param) == 0) && (indexEmpty == CLASS_MAX_SIZE)) {  //there is enough place to store data here
-            indexEmpty = i;
-        }
-        i++;
-    }
-
-    if ((classFound == 0) && (indexEmpty < CLASS_MAX_SIZE)) {
-        if (toFill == NULL) {
-            fillValue(&class[indexEmpty], value);
-        } else {
-            toFill[indexEmpty] = atoi(value);
-#if defined(DEBUG)
-            syslog(LOG_NOTICE, "ppm:  Accepted value: %d",
-                   toFill[indexEmpty]);
-#endif
-        }
-
-        strcpy_safe(class[indexEmpty].param, classWord, PARAM_MAXLEN);
-    }
-#if defined(DEBUG)
-    else if ((classFound == 0) && (indexEmpty == CLASS_MAX_SIZE))
-        syslog(LOG_WARNING,
-               "ppm: Not enough place to store new parameter: %s",
-               word);
-#endif
-
-
-}
-
-
-void
-load_config(char *word, char *value, conf * staticConf, conf * class,
-            int *min, int *minForPoint)
+genValue*
+getValue(conf *fileConf, int numParam, char* param)
 {
     int i = 0;
-    int staticFound = 0;
 
-    // First scan the static parameters
-    staticFound = 0;
-    for (i = 0; i < STATICCONF_MAX_SIZE; i++) {
-        if ((strlen(word) == strlen(staticConf[i].param))
-            && (strncmp(word, staticConf[i].param, strlen(staticConf[i].param))
+    // First scan parameters
+    for (i = 0; i < numParam; i++) {
+        if ((strlen(param) == strlen(fileConf[i].param))
+            && (strncmp(param, fileConf[i].param, strlen(fileConf[i].param))
                 == 0)) {
-            fillValue(&staticConf[i], value);
-#if defined(DEBUG)
-            syslog(LOG_NOTICE, "ppm:  Accepted static parameter: %s",
-                   word);
-#endif
-            staticFound = 1;
-            break;
+            return &(fileConf[i].value);
         }
     }
-
-
-    if (staticFound != 1) {
-
-        // Is this a min parameter ?
-        if (strncmp
-            (word, PARAM_PREFIX_MIN_CRITERIA,
-             (sizeof(PARAM_PREFIX_MIN_CRITERIA) - 1)) == 0) {
-#if defined(DEBUG)
-            syslog(LOG_NOTICE, "ppm:  Accepted min parameter: %s",
-                   word);
-#endif
-            fillParameter(word,
-                          (word + (sizeof(PARAM_PREFIX_MIN_CRITERIA) - 1)),
-                          value, class, min);
-        }
-        // Is this a minForPoint parameter ?
-        else if (strncmp
-                 (word, PARAM_PREFIX_MINFORPOINT_CRITERIA,
-                  (sizeof(PARAM_PREFIX_MINFORPOINT_CRITERIA) - 1)) == 0) {
-#if defined(DEBUG)
-            syslog(LOG_NOTICE,
-                   "ppm:  Accepted minForPoint parameter: %s", word);
-#endif
-            fillParameter(word,
-                          (word +
-                           (sizeof(PARAM_PREFIX_MINFORPOINT_CRITERIA) - 1)),
-                          value, class, minForPoint);
-        }
-
-        else {
-            // ok, thus if it is none of the previous, assume it's a class parameter
-#if defined(DEBUG)
-            syslog(LOG_NOTICE, "ppm:  Accepted class parameter: %s",
-                   word);
-#endif
-            fillParameter(word, word, value, class, NULL);
-        }
-
-    }
-
+    return NULL;
 }
 
+void
+storeEntry(char *param, char *value, valueType valType, 
+           char *min, char *minForPoint, conf * fileConf, int *numParam)
+{
+    int i = 0;
+    int iMin;
+    int iMinForPoint;
+    if (min == NULL || strcmp(min,"") == 0)
+      iMin = 0;
+    else
+      iMin = atoi(min);
 
+    if (minForPoint == NULL || strcmp(minForPoint,"") == 0)
+      iMinForPoint = 0;
+    else
+      iMinForPoint = atoi(minForPoint);
+
+    // First scan parameters
+    for (i = 0; i < *numParam; i++) {
+        if ((strlen(param) == strlen(fileConf[i].param))
+            && (strncmp(param, fileConf[i].param, strlen(fileConf[i].param))
+                == 0)) {
+            // entry found, replace values
+            if(valType == typeInt)
+                fileConf[i].value.iVal = atoi(value);
+            else
+                strcpy_safe(fileConf[i].value.sVal, value, VALUE_MAX_LEN);
+            fileConf[i].min = iMin;
+            fileConf[i].minForPoint = iMinForPoint;
+#if defined(DEBUG)
+            if(valType == typeInt)
+                syslog(LOG_NOTICE, "ppm:  Accepted replaced value: %d",
+                               fileConf[i].value.iVal);
+            else
+                syslog(LOG_NOTICE, "ppm:  Accepted replaced value: %s",
+                               fileConf[i].value.sVal);
+#endif
+            return;
+        }
+    }
+    // entry not found, add values
+    strcpy_safe(fileConf[*numParam].param, param, PARAM_MAX_LEN);
+    fileConf[*numParam].iType = valType;
+    if(valType == typeInt)
+        fileConf[i].value.iVal = atoi(value);
+    else
+        strcpy_safe(fileConf[i].value.sVal, value, VALUE_MAX_LEN);
+    fileConf[*numParam].min = iMin;
+    fileConf[*numParam].minForPoint = iMinForPoint;
+    ++(*numParam);
+#if defined(DEBUG)
+            if(valType == typeInt)
+                syslog(LOG_NOTICE, "ppm:  Accepted new value: %d",
+                               fileConf[*numParam].value.iVal);
+            else
+                syslog(LOG_NOTICE, "ppm:  Accepted new value: %s",
+                               fileConf[*numParam].value.sVal);
+#endif
+}
+
+int
+typeParam(char* param)
+{
+    int i;
+    int n = sizeof(allowedParameters)/sizeof(params);
+
+    regex_t regex;
+    int reti;
+
+    for(i = 0 ; i < n ; i++ )
+    {
+        // Compile regular expression
+        reti = regcomp(&regex, allowedParameters[i].param, 0);
+        if (reti) {
+#if defined(DEBUG)
+            syslog(LOG_ERR, "ppm: Cannot compile regex: %s",
+                   allowedParameters[i].param);
+#endif
+            exit(EXIT_FAILURE);
+        }
+        
+        // Execute regular expression
+        reti = regexec(&regex, param, 0, NULL, 0);
+        if (!reti)
+        {
+            regfree(&regex);
+            return i;
+        } 
+        regfree(&regex);
+    }
+    return n;
+}
 
 static void
-read_config_file(conf * staticConf, conf * class, int *min,
-                             int *minForPoint)
+read_config_file(conf * fileConf, int *numParam)
 {
     FILE *config;
     char line[260] = "";
+    int nParam = 0;       // position of found parameter in allowedParameters
+    int sAllowedParameters = sizeof(allowedParameters)/sizeof(params);
 
+#if defined(DEBUG)
+        syslog(LOG_NOTICE, "ppm: Opening file %s", CONFIG_FILE);
+#endif
     if ((config = fopen(CONFIG_FILE, "r")) == NULL) {
 #if defined(DEBUG)
         syslog(LOG_ERR, "ppm: Opening file %s failed", CONFIG_FILE);
@@ -248,11 +230,14 @@ read_config_file(conf * staticConf, conf * class, int *min,
     while (fgets(line, 256, config) != NULL) {
         char *start = line;
         char *word, *value;
+        char *min, *minForPoint;;
 
         while (isspace(*start) && isascii(*start))
             start++;
 
         if (!isascii(*start))
+            continue;
+        if (start[0] == '#')
             continue;
 
         if ((word = strtok(start, " \t"))) {
@@ -260,15 +245,35 @@ read_config_file(conf * staticConf, conf * class, int *min,
                 continue;
             if (strchr(value, '\n') != NULL)
                 strchr(value, '\n')[0] = '\0';
+            min = strtok(NULL, " \t");
+            if (min != NULL)
+                if (strchr(min, '\n') != NULL)
+                    strchr(min, '\n')[0] = '\0';
+            minForPoint = strtok(NULL, " \t");
+            if (minForPoint != NULL)
+                if (strchr(minForPoint, '\n') != NULL)
+                    strchr(minForPoint, '\n')[0] = '\0';
 
+
+            nParam = typeParam(word); // search for param in allowedParameters
+            if (nParam != sAllowedParameters) // param has been found
+            {
 #if defined(DEBUG)
-            syslog(LOG_NOTICE, "ppm: Word = %s, value = %s", word,
-                   value);
+                syslog(LOG_NOTICE,
+                   "ppm: Param = %s, value = %s, min = %s, minForPoint= %s",
+                   word, value, min, minForPoint);
 #endif
 
-            load_config(word, value, staticConf, class, min, minForPoint);
-
-
+                storeEntry(word, value, allowedParameters[nParam].iType,
+                           min, minForPoint, fileConf, numParam);
+            }
+            else
+            {
+#if defined(DEBUG)
+                syslog(LOG_NOTICE,
+                   "ppm: Parameter '%s' rejected", word);
+#endif
+            }
 
         }
     }
@@ -296,63 +301,50 @@ realloc_error_message(char **target, int curlen, int nextlen)
 int
 check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
 {
-
     char *szErrStr = (char *) ber_memalloc(MEM_INIT_SZ);
     int mem_len = MEM_INIT_SZ;
+    int numParam = 0; // Number of params in current configuration
 
     int minQuality;
-    char forbiddenChars[VALUE_MAXLEN];
+    char forbiddenChars[VALUE_MAX_LEN];
     int nForbiddenChars = 0;
     int nQuality = 0;
-    int nbInClass[CLASS_MAX_SIZE];
+    int nbInClass[CONF_MAX_SIZE];
     int i;
 
-    for (i = 0; i < CLASS_MAX_SIZE; i++)
+    for (i = 0; i < CONF_MAX_SIZE; i++)
         nbInClass[i] = 0;
 
     /* Set default values */
-    conf staticConf[STATICCONF_MAX_SIZE] = {
-        {"minQuality", typeInt, {.iVal = DEFAULT_QUALITY}
+    conf fileConf[CONF_MAX_SIZE] = {
+        {"minQuality", typeInt, {.iVal = DEFAULT_QUALITY}, 0, 0
          }
         ,
-        {"forbiddenChars", typeStr, {.sVal = ""}
+        {"forbiddenChars", typeStr, {.sVal = ""}, 0, 0
+         }
+        ,
+        {"class-upperCase", typeStr, {.sVal = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}, 0, 1
+         }
+        ,
+        {"class-lowerCase", typeStr, {.sVal = "abcdefghijklmnopqrstuvwxyz"}, 0, 1
+         }
+        ,
+        {"class-digit", typeStr, {.sVal = "0123456789"}, 0, 1
+         }
+        ,
+        {"class-special", typeStr,
+         {.sVal = "<>,?;.:/!§ù%*µ^¨$£²&é~\"#'{([-|è`_\\ç^à@)]°=}+"}, 0, 1
          }
     };
-    conf class[CLASS_MAX_SIZE] = {
-        {"upperCase", typeStr, {.sVal = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}
-         }
-        ,
-        {"lowerCase", typeStr, {.sVal = "abcdefghijklmnopqrstuvwxyz"}
-         }
-        ,
-        {"digit", typeStr, {.sVal = "0123456789"}
-         }
-        ,
-        {"special", typeStr,
-         {.sVal = "<>,?;.:/!§ù%*µ^¨$£²&é~\"#'{([-|è`_\\ç^à@)]°=}+"}
-         }
-    };
-    for (i = 4; i < CLASS_MAX_SIZE; i++) {
-        strcpy(class[i].param, "");
-        class[i].iType = typeStr;
-        strcpy(class[i].value.sVal, "");
-    }
-
-    // required number of characters to validate the password
-    int min[CLASS_MAX_SIZE];
-    for (i = 0; i < CLASS_MAX_SIZE; i++)
-        min[i] = 1;
-
-    // minimum number of characters for having the class point
-    int minForPoint[CLASS_MAX_SIZE] = { 0 };
-    for (i = 0; i < CLASS_MAX_SIZE; i++)
-        minForPoint[i] = 0;
+    numParam = 6;
 
     /* Read config file */
-    read_config_file(staticConf, class, min, minForPoint);
+    read_config_file(fileConf, &numParam);
 
-    minQuality = staticConf[0].value.iVal;
-    strcpy_safe(forbiddenChars, staticConf[1].value.sVal, VALUE_MAXLEN);
+    minQuality = getValue(fileConf, numParam, "minQuality")->iVal;
+    strcpy_safe(forbiddenChars,
+                getValue(fileConf, numParam, "forbiddenChars")->sVal,
+                VALUE_MAX_LEN);
 
 
     /*The password must have at least minQuality strength points with one
@@ -363,9 +355,11 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
     for (i = 0; i < strlen(pPasswd); i++) {
 
         int n;
-        for (n = 0; n < CLASS_MAX_SIZE; n++) {
-            if (strchr(class[n].value.sVal, pPasswd[i]) != NULL) {
-                (nbInClass[n])++;
+        for (n = 0; n < numParam; n++) {
+            if (strstr(fileConf[n].param, "class-") != NULL) {
+                if (strchr(fileConf[n].value.sVal, pPasswd[i]) != NULL) {
+                    ++(nbInClass[n]);
+                }
             }
         }
         if (strchr(forbiddenChars, pPasswd[i]) != NULL) {
@@ -374,15 +368,17 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
     }
 
     // Password checking done, now loocking for minForPoint criteria
-    for (i = 0; i < CLASS_MAX_SIZE; i++) {
-        if ((nbInClass[i] >= minForPoint[i])
-            && strlen(class[i].value.sVal) != 0) {
-            // 1 point granted
-            nQuality++;
+    for (i = 0; i < CONF_MAX_SIZE; i++) {
+        if (strstr(fileConf[i].param, "class-") != NULL) {
+            if ((nbInClass[i] >= fileConf[i].minForPoint)
+                && strlen(fileConf[i].value.sVal) != 0) {
+                // 1 point granted
+                ++nQuality;
 #if defined(DEBUG)
-            syslog(LOG_NOTICE, "ppm: 1 point granted for class %s",
-                   class[i].param);
+                syslog(LOG_NOTICE, "ppm: 1 point granted for class %s",
+                       fileConf[i].param);
 #endif
+            }
         }
     }
 
@@ -395,16 +391,19 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
         goto fail;
     }
     // Password checking done, now loocking for constraintClass criteria
-    for (i = 0; i < CLASS_MAX_SIZE; i++) {
-        if ((nbInClass[i] < min[i]) && strlen(class[i].value.sVal) != 0) {
-            // constraint is not satisfied... goto fail
-            mem_len = realloc_error_message(&szErrStr, mem_len,
-                                            strlen(PASSWORD_CRITERIA) +
-                                            strlen(pEntry->e_name.bv_val) + 2 +
-                                            PARAM_MAXLEN);
-            sprintf(szErrStr, PASSWORD_CRITERIA, pEntry->e_name.bv_val, min[i],
-                    class[i].param);
-            goto fail;
+    for (i = 0; i < CONF_MAX_SIZE; i++) {
+        if (strstr(fileConf[i].param, "class-") != NULL) {
+            if ((nbInClass[i] < fileConf[i].min) &&
+                 strlen(fileConf[i].value.sVal) != 0) {
+                // constraint is not satisfied... goto fail
+                mem_len = realloc_error_message(&szErrStr, mem_len,
+                                                strlen(PASSWORD_CRITERIA) +
+                                                strlen(pEntry->e_name.bv_val) + 
+                                                2 + PARAM_MAX_LEN);
+                sprintf(szErrStr, PASSWORD_CRITERIA, pEntry->e_name.bv_val,
+                        fileConf[i].min, fileConf[i].param);
+                goto fail;
+            }
         }
     }
 
@@ -413,7 +412,7 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
         mem_len = realloc_error_message(&szErrStr, mem_len,
                                         strlen(PASSWORD_FORBIDDENCHARS) +
                                         strlen(pEntry->e_name.bv_val) + 2 +
-                                        VALUE_MAXLEN);
+                                        VALUE_MAX_LEN);
         sprintf(szErrStr, PASSWORD_FORBIDDENCHARS, pEntry->e_name.bv_val,
                 nForbiddenChars, forbiddenChars);
         goto fail;
