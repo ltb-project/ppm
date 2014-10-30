@@ -3,7 +3,7 @@ ppm.c - OpenLDAP password policy module
 
 2014    David Coutadeur <david.coutadeur@gmail.com>
 
-version 1.1
+version 1.2
 
 ppm.c is an OpenLDAP module for checking password quality when they are modified.
 Passwords are checked against the presence or absence of certain character classes.
@@ -63,6 +63,7 @@ with spaces being delimiters. Parameter names ARE case sensitive
 
 The default configuration file is the following:
 
+```
 # minQuality parameter
 # Format:
 # minQuality [NUMBER]
@@ -97,7 +98,7 @@ class-upperCase ABCDEFGHIJKLMNOPQRSTUVWXYZ 0 1
 class-lowerCase abcdefghijklmnopqrstuvwxyz 0 1
 class-digit 0123456789 0 1
 class-special <>,?;.:/!§ù%*µ^¨$£²&é~"#'{([-|è`_\ç^à@)]°=}+ 0 1
-
+```
 
 Example
 -------
