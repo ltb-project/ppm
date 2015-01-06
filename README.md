@@ -2,8 +2,9 @@
 ppm.c - OpenLDAP password policy module
 
 2014    David Coutadeur <david.coutadeur@gmail.com>
+        Daly Chikhaoui - Janua <dchikhaoui@janua.fr>
 
-version 1.2
+version 1.3
 
 ppm.c is an OpenLDAP module for checking password quality when they are modified.
 Passwords are checked against the presence or absence of certain character classes.
@@ -46,6 +47,8 @@ defined.
 - if a password contains any of the forbidden characters, then it is
 rejected.
 
+- if a password contains tokens from the RDN, then it is rejected
+
 - if a password is too long, it can be rejected.
 
 
@@ -79,6 +82,14 @@ minQuality 3
 # The password must not be more than [NUMBER] long. 0 means no limit is set.
 maxLength 0
 
+# checkRDN parameter
+# Format:
+# checkRDN [0 | 1]
+# Description:
+# If set to 1, password must not contain a token from the RDN.
+# Tokens are separated by the following delimiters : space tabulation _ - , ; £
+checkRDN 0
+
 # forbiddenChars parameter
 # Format:
 # forbiddenChars [CHARACTERS_FORBIDDEN]
@@ -108,6 +119,7 @@ With this policy:
 minQuality 4
 forbiddenChars .?,
 maxLength 0
+checkRDN 1
 class-upperCase ABCDEFGHIJKLMNOPQRSTUVWXYZ 0 5
 class-lowerCase abcdefghijklmnopqrstuvwxyz 0 12
 class-digit 0123456789 0 1
@@ -115,7 +127,7 @@ class-special <>,?;.:/!§ù%*µ^¨$£²&é~"#'{([-|è`_\ç^à@)]°=}+ 0 1
 class-myClass :) 1 1``
 ```
 
-the password:
+the password
 
 ThereIsNoCowLevel)
 
@@ -125,6 +137,8 @@ is working, because,
 - it has at least one character among : or )
 - there is no size constraint (maxLength of 0)
 
+but it won't work for the user uid=John Cowlevel,ou=people,cn=example,cn=com,
+because the token "Cowlevel" from his RDN exists in the password (case insensitive).
 
 Logs
 ----
@@ -167,6 +181,9 @@ TODO
 
 HISTORY
 -------
+* 2014-12-20 Daly Chikhaoui <dchikhaoui@janua.fr>
+  Adding checkRDN parameter
+  Version 1.3
 * 2014-10-28 David Coutadeur <david.coutadeur@gmail.com>
   Adding maxLength parameter
   Version 1.2
