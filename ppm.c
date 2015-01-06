@@ -22,13 +22,15 @@
 #define DEFAULT_QUALITY                   3
 #define MEMORY_MARGIN                     50
 #define MEM_INIT_SZ                       64
-#define FILENAME_MAX_LEN                   512
+#define FILENAME_MAX_LEN                  512
+#define DN_MAX_LEN			  			  256 
 
 #define CONF_MAX_SIZE                      50
 #define PARAM_MAX_LEN                      16
 #define VALUE_MAX_LEN                      60
 
 #define PARAM_PREFIX_CLASS                "class-"
+#define TOKENS_DELIMITERS                 " ,;-_£\t"
 
 
 #define PASSWORD_TOO_LONG_SZ \
@@ -39,9 +41,10 @@
   "Password for dn=\"%s\" has not reached the minimum number of characters (%d) for class %s"
 #define PASSWORD_FORBIDDENCHARS \
   "Password for dn=\"%s\" contains %d forbidden characters in %s"
+#define RDN_TOKEN_FOUND \
+  "Password for dn=\"%s\" contains tokens from the RDN"
 #define BAD_PASSWORD_SZ \
   "Bad password for dn=\"%s\" because %s"
-
 
 
 
@@ -62,9 +65,10 @@ typedef struct params {
 
 // allowed parameters loaded into configuration structure
 // it also contains the type of the corresponding value
-params allowedParameters[4] = {
+params allowedParameters[5] = {
     {"^maxLength", typeInt},
     {"^minQuality", typeInt},
+    {"^checkRDN", typeInt},
     {"^forbiddenChars", typeStr},
     {"^class-.*", typeStr}
 };
@@ -299,15 +303,69 @@ realloc_error_message(char **target, int curlen, int nextlen)
     return curlen;
 }
 
+// Does the password contains a token from the RDN
+int containsRDN(char* passwd, char* DN)
+{
+   char lDN[DN_MAX_LEN];
+   char * tmpToken;
+   char * token;
+   regex_t regex;
+   int reti;
+
+   strcpy_safe(lDN, DN, DN_MAX_LEN);
+
+   // Extract the RDN from the DN
+   tmpToken = strtok(lDN, ",+");
+   tmpToken = strtok(tmpToken, "=");
+   tmpToken = strtok(NULL, "=");
+
+   // Search for each token in the password */
+   token = strtok(tmpToken, TOKENS_DELIMITERS);
+
+   while (token != NULL)
+   {
+      if (strlen(token) > 2)
+      {
+		// Compile regular expression
+		reti = regcomp(&regex, token, REG_ICASE);
+        if (reti) {
+#if defined(DEBUG)
+            syslog(LOG_ERR, "ppm: Cannot compile regex: %s", token);
+#endif
+            exit(EXIT_FAILURE);
+        }
+
+      }
+
+	  // Execute regular expression
+      reti = regexec(&regex, passwd, 0, NULL, 0);
+      if (!reti)
+      {
+          regfree(&regex);
+          return 1;
+      }
+
+      regfree(&regex);
+      token = strtok(NULL, TOKENS_DELIMITERS);
+   }
+
+   return 0;
+}
+
+
 int
 check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
 {
+    
+    syslog(LOG_NOTICE, "ppm: Entrée %s", pEntry->e_nname.bv_val);
+
     char *szErrStr = (char *) ber_memalloc(MEM_INIT_SZ);
     int mem_len = MEM_INIT_SZ;
     int numParam = 0; // Number of params in current configuration
 
     int maxLength;
     int minQuality;
+    int checkRDN;
     char forbiddenChars[VALUE_MAX_LEN];
     int nForbiddenChars = 0;
     int nQuality = 0;
@@ -323,6 +381,9 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
          }
         ,
         {"minQuality", typeInt, {.iVal = DEFAULT_QUALITY}, 0, 0
+         }
+        ,
+        {"checkRDN", typeInt, {.iVal = 0}, 0, 0
          }
         ,
         {"forbiddenChars", typeStr, {.sVal = ""}, 0, 0
@@ -341,13 +402,14 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
          {.sVal = "<>,?;.:/!§ù%*µ^¨$£²&é~\"#'{([-|è`_\\ç^à@)]°=}+"}, 0, 1
          }
     };
-    numParam = 7;
+    numParam = 8;
 
     /* Read config file */
     read_config_file(fileConf, &numParam);
 
     maxLength = getValue(fileConf, numParam, "maxLength")->iVal;
     minQuality = getValue(fileConf, numParam, "minQuality")->iVal;
+    checkRDN = getValue(fileConf, numParam, "checkRDN")->iVal;
     strcpy_safe(forbiddenChars,
                 getValue(fileConf, numParam, "forbiddenChars")->sVal,
                 VALUE_MAX_LEN);
@@ -433,6 +495,18 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
                                         VALUE_MAX_LEN);
         sprintf(szErrStr, PASSWORD_FORBIDDENCHARS, pEntry->e_name.bv_val,
                 nForbiddenChars, forbiddenChars);
+        goto fail;
+    }
+
+    // Password checking done, now looking for checkRDN criteria
+    if (checkRDN == 1 && containsRDN(pPasswd, pEntry->e_name.bv_val))
+    // RDN check is enabled and a token from the RDN is found in the password... goto fail
+    {
+	mem_len = realloc_error_message(&szErrStr, mem_len,
+                                        strlen(RDN_TOKEN_FOUND) +
+                                        strlen(pEntry->e_name.bv_val));
+        sprintf(szErrStr, RDN_TOKEN_FOUND, pEntry->e_name.bv_val);
+	
         goto fail;
     }
 
