@@ -23,7 +23,7 @@
 #define MEMORY_MARGIN                     50
 #define MEM_INIT_SZ                       64
 #define FILENAME_MAX_LEN                  512
-#define DN_MAX_LEN			  			  256 
+#define DN_MAX_LEN                        512
 
 #define CONF_MAX_SIZE                      50
 #define PARAM_MAX_LEN                      16
@@ -303,53 +303,53 @@ realloc_error_message(char **target, int curlen, int nextlen)
     return curlen;
 }
 
-// Does the password contains a token from the RDN
-int containsRDN(char* passwd, char* DN)
+// Does the password contains a token from the RDN ?
+int
+containsRDN(char* passwd, char* DN)
 {
-   char lDN[DN_MAX_LEN];
-   char * tmpToken;
-   char * token;
-   regex_t regex;
-   int reti;
-
-   strcpy_safe(lDN, DN, DN_MAX_LEN);
-
-   // Extract the RDN from the DN
-   tmpToken = strtok(lDN, ",+");
-   tmpToken = strtok(tmpToken, "=");
-   tmpToken = strtok(NULL, "=");
-
-   // Search for each token in the password */
-   token = strtok(tmpToken, TOKENS_DELIMITERS);
-
-   while (token != NULL)
-   {
+    char lDN[DN_MAX_LEN];
+    char * tmpToken;
+    char * token;
+    regex_t regex;
+    int reti;
+ 
+    strcpy_safe(lDN, DN, DN_MAX_LEN);
+ 
+    // Extract the RDN from the DN
+    tmpToken = strtok(lDN, ",+");
+    tmpToken = strtok(tmpToken, "=");
+    tmpToken = strtok(NULL, "=");
+ 
+    // Search for each token in the password */
+    token = strtok(tmpToken, TOKENS_DELIMITERS);
+ 
+    while (token != NULL)
+    {
       if (strlen(token) > 2)
       {
-		// Compile regular expression
-		reti = regcomp(&regex, token, REG_ICASE);
+        // Compile regular expression
+        reti = regcomp(&regex, token, REG_ICASE);
         if (reti) {
-#if defined(DEBUG)
-            syslog(LOG_ERR, "ppm: Cannot compile regex: %s", token);
-#endif
-            exit(EXIT_FAILURE);
+ #if defined(DEBUG)
+          syslog(LOG_ERR, "ppm: Cannot compile regex: %s", token);
+ #endif
+          exit(EXIT_FAILURE);
         }
-
       }
-
-	  // Execute regular expression
+ 
+      // Execute regular expression
       reti = regexec(&regex, passwd, 0, NULL, 0);
       if (!reti)
       {
-          regfree(&regex);
-          return 1;
+        regfree(&regex);
+        return 1;
       }
-
+ 
       regfree(&regex);
       token = strtok(NULL, TOKENS_DELIMITERS);
-   }
-
-   return 0;
+    }
+ 
+    return 0;
 }
 
 
@@ -357,7 +357,9 @@ int
 check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
 {
     
-    syslog(LOG_NOTICE, "ppm: Entrée %s", pEntry->e_nname.bv_val);
+#if defined(DEBUG)
+    syslog(LOG_NOTICE, "ppm: Entry %s", pEntry->e_nname.bv_val);
+#endif
 
     char *szErrStr = (char *) ber_memalloc(MEM_INIT_SZ);
     int mem_len = MEM_INIT_SZ;
@@ -500,13 +502,13 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
 
     // Password checking done, now looking for checkRDN criteria
     if (checkRDN == 1 && containsRDN(pPasswd, pEntry->e_name.bv_val))
-    // RDN check is enabled and a token from the RDN is found in the password... goto fail
+    // RDN check enabled and a token from RDN is found in password: goto fail
     {
-	mem_len = realloc_error_message(&szErrStr, mem_len,
+        mem_len = realloc_error_message(&szErrStr, mem_len,
                                         strlen(RDN_TOKEN_FOUND) +
                                         strlen(pEntry->e_name.bv_val));
         sprintf(szErrStr, RDN_TOKEN_FOUND, pEntry->e_name.bv_val);
-	
+
         goto fail;
     }
 
