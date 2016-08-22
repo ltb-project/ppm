@@ -1,10 +1,10 @@
 
 ppm.c - OpenLDAP password policy module
 
-2014    David Coutadeur <david.coutadeur@gmail.com>
+2016    David Coutadeur <david.coutadeur@gmail.com>
         Daly Chikhaoui - Janua <dchikhaoui@janua.fr>
 
-version 1.3
+version 1.4
 
 ppm.c is an OpenLDAP module for checking password quality when they are modified.
 Passwords are checked against the presence or absence of certain character classes.
@@ -56,8 +56,9 @@ Configuration file
 ------------------
 
 The configuration file (/etc/openldap/ppm.conf by default) contains
-parameters for the module. If the file is not found, parameters are given their
-default value.
+parameters for the module. The PPM_CONFIG_FILE environment variable,
+if defined, overloads the configuration file path.
+If the file is not found, parameters are given their default value.
 
 The syntax of the file is :
 parameter value [min] [minForPoint]
@@ -181,6 +182,9 @@ TODO
 
 HISTORY
 -------
+* 2016-08-22 David Coutadeur <david.coutadeur@gmail.com>
+  Get config file from environment variable
+  Version 1.4
 * 2014-12-20 Daly Chikhaoui <dchikhaoui@janua.fr>
   Adding checkRDN parameter
   Version 1.3

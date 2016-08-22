@@ -87,7 +87,7 @@ typedef struct conf {
 
 
 int min(char *str1, char *str2);
-static void read_config_file(conf * fileConf, int *numParam);
+static void read_config_file(conf * fileConf, int *numParam, char *ppm_config_file);
 int check_password(char *pPasswd, char **ppErrStr, Entry * pEntry);
 void storeEntry(char *param, char *value, valueType valType, 
            char *min, char *minForPoint, conf * fileConf, int *numParam);
@@ -97,12 +97,19 @@ genValue* getValue(conf *fileConf, int numParam, char* param);
 void
 strcpy_safe(char *dest, char *src, int length_dest)
 {
-    int length_src = strlen(src);
-    int n = (length_dest < length_src) ? length_dest : length_src;
-    // Copy the string — don’t copy too many bytes.
-    strncpy(dest, src, n);
-    // Ensure null-termination.
-    dest[n] = '\0';
+    if(src == NULL)
+    {
+        dest[0] = '\0';
+    }
+    else
+    {
+        int length_src = strlen(src);
+        int n = (length_dest < length_src) ? length_dest : length_src;
+        // Copy the string — don’t copy too many bytes.
+        strncpy(dest, src, n);
+        // Ensure null-termination.
+        dest[n] = '\0';
+    }
 }
 
 genValue*
@@ -215,7 +222,7 @@ typeParam(char* param)
 }
 
 static void
-read_config_file(conf * fileConf, int *numParam)
+read_config_file(conf * fileConf, int *numParam, char *ppm_config_file)
 {
     FILE *config;
     char line[260] = "";
@@ -223,11 +230,11 @@ read_config_file(conf * fileConf, int *numParam)
     int sAllowedParameters = sizeof(allowedParameters)/sizeof(params);
 
 #if defined(DEBUG)
-        syslog(LOG_NOTICE, "ppm: Opening file %s", CONFIG_FILE);
+        syslog(LOG_NOTICE, "ppm: Opening file %s", ppm_config_file);
 #endif
-    if ((config = fopen(CONFIG_FILE, "r")) == NULL) {
+    if ((config = fopen(ppm_config_file, "r")) == NULL) {
 #if defined(DEBUG)
-        syslog(LOG_ERR, "ppm: Opening file %s failed", CONFIG_FILE);
+        syslog(LOG_ERR, "ppm: Opening file %s failed", ppm_config_file);
 #endif
 
     }
@@ -373,6 +380,16 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
     int nQuality = 0;
     int nbInClass[CONF_MAX_SIZE];
     int i;
+    char ppm_config_file[FILENAME_MAX_LEN];
+
+    /* Determine config file */
+    strcpy_safe(ppm_config_file, getenv("PPM_CONFIG_FILE"), FILENAME_MAX_LEN);
+    if (ppm_config_file[0] == '\0') {
+      strcpy_safe(ppm_config_file, CONFIG_FILE, FILENAME_MAX_LEN);
+    }
+#if defined(DEBUG)
+    syslog(LOG_NOTICE, "ppm: reading config file from %s", ppm_config_file);
+#endif
 
     for (i = 0; i < CONF_MAX_SIZE; i++)
         nbInClass[i] = 0;
@@ -407,7 +424,7 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
     numParam = 8;
 
     /* Read config file */
-    read_config_file(fileConf, &numParam);
+    read_config_file(fileConf, &numParam, ppm_config_file);
 
     maxLength = getValue(fileConf, numParam, "maxLength")->iVal;
     minQuality = getValue(fileConf, numParam, "minQuality")->iVal;
