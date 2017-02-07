@@ -26,7 +26,7 @@
 #define DN_MAX_LEN                        512
 
 #define CONF_MAX_SIZE                      50
-#define PARAM_MAX_LEN                      16
+#define PARAM_MAX_LEN                      32
 #define VALUE_MAX_LEN                      60
 
 #define PARAM_PREFIX_CLASS                "class-"
@@ -39,6 +39,8 @@
   "Password for dn=\"%s\" does not pass required number of strength checks (%d of %d)"
 #define PASSWORD_CRITERIA \
   "Password for dn=\"%s\" has not reached the minimum number of characters (%d) for class %s"
+#define PASSWORD_MAXCONSECUTIVEPERCLASS \
+  "Password for dn=\"%s\" has reached the maximum number of characters (%d) for class %s"
 #define PASSWORD_FORBIDDENCHARS \
   "Password for dn=\"%s\" contains %d forbidden characters in %s"
 #define RDN_TOKEN_FOUND \
@@ -65,11 +67,12 @@ typedef struct params {
 
 // allowed parameters loaded into configuration structure
 // it also contains the type of the corresponding value
-params allowedParameters[5] = {
+params allowedParameters[6] = {
     {"^maxLength", typeInt},
     {"^minQuality", typeInt},
     {"^checkRDN", typeInt},
     {"^forbiddenChars", typeStr},
+    {"^maxConsecutivePerClass", typeInt},
     {"^class-.*", typeStr}
 };
 
@@ -378,6 +381,7 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
     char forbiddenChars[VALUE_MAX_LEN];
     int nForbiddenChars = 0;
     int nQuality = 0;
+    int maxConsecutivePerClass;
     int nbInClass[CONF_MAX_SIZE];
     int i;
     char ppm_config_file[FILENAME_MAX_LEN];
@@ -408,6 +412,9 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
         {"forbiddenChars", typeStr, {.sVal = ""}, 0, 0
          }
         ,
+        {"maxConsecutivePerClass", typeInt, {.iVal = 0}, 0, 0
+         }
+        ,
         {"class-upperCase", typeStr, {.sVal = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}, 0, 1
          }
         ,
@@ -421,7 +428,7 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
          {.sVal = "<>,?;.:/!§ù%*µ^¨$£²&é~\"#'{([-|è`_\\ç^à@)]°=}+"}, 0, 1
          }
     };
-    numParam = 8;
+    numParam = 9;
 
     /* Read config file */
     read_config_file(fileConf, &numParam, ppm_config_file);
@@ -432,6 +439,7 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
     strcpy_safe(forbiddenChars,
                 getValue(fileConf, numParam, "forbiddenChars")->sVal,
                 VALUE_MAX_LEN);
+    maxConsecutivePerClass = getValue(fileConf, numParam, "maxConsecutivePerClass")->iVal;
 
 
     /*The password must have at least minQuality strength points with one
@@ -515,6 +523,27 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
         sprintf(szErrStr, PASSWORD_FORBIDDENCHARS, pEntry->e_name.bv_val,
                 nForbiddenChars, forbiddenChars);
         goto fail;
+    }
+
+    // Password checking done, now loocking for maxConsecutivePerClass criteria
+    for (i = 0; i < CONF_MAX_SIZE; i++) {
+        if (strstr(fileConf[i].param, "class-") != NULL) {
+            if ((nbInClass[i] > maxConsecutivePerClass)
+                && maxConsecutivePerClass != 0) {
+                // Too much consecutive characters of the same class
+#if defined(DEBUG)
+                syslog(LOG_NOTICE, "ppm: Too much consecutive chars for class %s",
+                       fileConf[i].param);
+#endif
+                mem_len = realloc_error_message(&szErrStr, mem_len,
+                                        strlen(PASSWORD_MAXCONSECUTIVEPERCLASS) +
+                                        strlen(pEntry->e_name.bv_val) + 2 +
+                                        PARAM_MAX_LEN);
+                sprintf(szErrStr, PASSWORD_MAXCONSECUTIVEPERCLASS, pEntry->e_name.bv_val,
+                        maxConsecutivePerClass, fileConf[i].param);
+                goto fail;
+            }
+        }
     }
 
     // Password checking done, now looking for checkRDN criteria

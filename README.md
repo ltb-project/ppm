@@ -4,7 +4,7 @@ ppm.c - OpenLDAP password policy module
 2016    David Coutadeur <david.coutadeur@gmail.com>
         Daly Chikhaoui - Janua <dchikhaoui@janua.fr>
 
-version 1.4
+version 1.5
 
 ppm.c is an OpenLDAP module for checking password quality when they are modified.
 Passwords are checked against the presence or absence of certain character classes.
@@ -99,6 +99,13 @@ checkRDN 0
 # If one of them is found in the password, then it is rejected.
 forbiddenChars
 
+# maxConsecutivePerClass parameter
+# Format:
+# maxConsecutivePerClass [NUMBER]
+# Description:
+# Defines the maximum number of consecutive character allowed for any class
+maxConsecutivePerClass 0
+
 # classes parameter
 # Format:
 # class-[CLASS_NAME] [CHARACTERS_DEFINING_CLASS] [MIN] [MIN_FOR_POINT]
@@ -182,6 +189,9 @@ TODO
 
 HISTORY
 -------
+* 2017-02-07 David Coutadeur <david.coutadeur@gmail.com>
+  Adds maxConsecutivePerClass (idea from Trevor Vaughan / tvaughan@onyxpoint.com)
+  Version 1.5
 * 2016-08-22 David Coutadeur <david.coutadeur@gmail.com>
   Get config file from environment variable
   Version 1.4
