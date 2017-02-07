@@ -14,9 +14,14 @@ OPT=-g -O2 -Wall -fpic 						\
 	-DDEBUG
 
 # Where to find the OpenLDAP headers.
-#
-LDAP_INC=-I../../../include \
-	 -I../../../servers/slapd
+
+LDAP_INC=-I../include \
+	 -I../servers/slapd
+
+# Where to find the OpenLDAP libraries.
+
+LDAP_LIBS=-L../libraries/liblber/.libs \
+	  -L../libraries/libldap_r/.libs
 
 INCS=$(LDAP_INC) $(CRACK_INC)
 
@@ -26,7 +31,10 @@ LIBS=$(LDAP_LIB)
 
 
 
-all: 	ppm
+all: 	ppm ppm_test
+
+ppm_test: 
+	$(CC) $(LDAP_INC) $(LDAP_LIBS) $(LIBS) ppm.so -o ppm_test ppm_test.c
 
 ppm.o:
 	$(CC) $(OPT) -c $(INCS) ppm.c
@@ -39,6 +47,6 @@ install: ppm
 	cp -f ppm.conf $(CONFIG)
 
 clean:
-	$(RM) ppm.o ppm.so ppm.lo
+	$(RM) ppm.o ppm.so ppm.lo ppm_test
 	$(RM) -r .libs
 
