@@ -10,8 +10,35 @@
 #include <ctype.h>
 #include <portable.h>
 #include <slap.h>
+#include <stdarg.h>             // for variable nb of arguments functions
 #include "ppm.h"
 
+
+
+void
+ppm_log(int priority, const char *format, ...)
+{
+  // if DEBUG flag is set
+  // logs into syslog (for OpenLDAP) or to stdout (for tests)
+#if defined(DEBUG)
+  if(ppm_test != 1)
+  {
+    va_list syslog_args;
+    va_start(syslog_args, format);
+    vsyslog(priority, format, syslog_args);
+    va_end(syslog_args);
+  }
+  else
+  {
+    va_list stdout_args;
+    va_start(stdout_args, format);
+    vprintf(format, stdout_args);
+    printf("\n");
+    fflush(stdout);
+    va_end(stdout_args);
+  }
+#endif
+}
 
 void
 strcpy_safe(char *dest, char *src, int length_dest)
@@ -76,14 +103,12 @@ storeEntry(char *param, char *value, valueType valType,
                 strcpy_safe(fileConf[i].value.sVal, value, VALUE_MAX_LEN);
             fileConf[i].min = iMin;
             fileConf[i].minForPoint = iMinForPoint;
-#if defined(DEBUG)
             if(valType == typeInt)
-                syslog(LOG_NOTICE, "ppm:  Accepted replaced value: %d",
+                ppm_log(LOG_NOTICE, "ppm:  Accepted replaced value: %d",
                                fileConf[i].value.iVal);
             else
-                syslog(LOG_NOTICE, "ppm:  Accepted replaced value: %s",
+                ppm_log(LOG_NOTICE, "ppm:  Accepted replaced value: %s",
                                fileConf[i].value.sVal);
-#endif
             return;
         }
     }
@@ -97,14 +122,12 @@ storeEntry(char *param, char *value, valueType valType,
     fileConf[*numParam].min = iMin;
     fileConf[*numParam].minForPoint = iMinForPoint;
     ++(*numParam);
-#if defined(DEBUG)
             if(valType == typeInt)
-                syslog(LOG_NOTICE, "ppm:  Accepted new value: %d",
+                ppm_log(LOG_NOTICE, "ppm:  Accepted new value: %d",
                                fileConf[*numParam].value.iVal);
             else
-                syslog(LOG_NOTICE, "ppm:  Accepted new value: %s",
+                ppm_log(LOG_NOTICE, "ppm:  Accepted new value: %s",
                                fileConf[*numParam].value.sVal);
-#endif
 }
 
 int
@@ -121,10 +144,8 @@ typeParam(char* param)
         // Compile regular expression
         reti = regcomp(&regex, allowedParameters[i].param, 0);
         if (reti) {
-#if defined(DEBUG)
-            syslog(LOG_ERR, "ppm: Cannot compile regex: %s",
+            ppm_log(LOG_ERR, "ppm: Cannot compile regex: %s",
                    allowedParameters[i].param);
-#endif
             exit(EXIT_FAILURE);
         }
         
@@ -148,13 +169,9 @@ read_config_file(conf * fileConf, int *numParam, char *ppm_config_file)
     int nParam = 0;       // position of found parameter in allowedParameters
     int sAllowedParameters = sizeof(allowedParameters)/sizeof(params);
 
-#if defined(DEBUG)
-        syslog(LOG_NOTICE, "ppm: Opening file %s", ppm_config_file);
-#endif
+    ppm_log(LOG_NOTICE, "ppm: Opening file %s", ppm_config_file);
     if ((config = fopen(ppm_config_file, "r")) == NULL) {
-#if defined(DEBUG)
-        syslog(LOG_ERR, "ppm: Opening file %s failed", ppm_config_file);
-#endif
+        ppm_log(LOG_ERR, "ppm: Opening file %s failed", ppm_config_file);
 
     }
 
@@ -189,21 +206,17 @@ read_config_file(conf * fileConf, int *numParam, char *ppm_config_file)
             nParam = typeParam(word); // search for param in allowedParameters
             if (nParam != sAllowedParameters) // param has been found
             {
-#if defined(DEBUG)
-                syslog(LOG_NOTICE,
+                ppm_log(LOG_NOTICE,
                    "ppm: Param = %s, value = %s, min = %s, minForPoint= %s",
                    word, value, min, minForPoint);
-#endif
 
                 storeEntry(word, value, allowedParameters[nParam].iType,
                            min, minForPoint, fileConf, numParam);
             }
             else
             {
-#if defined(DEBUG)
-                syslog(LOG_NOTICE,
+                ppm_log(LOG_NOTICE,
                    "ppm: Parameter '%s' rejected", word);
-#endif
             }
 
         }
@@ -216,11 +229,9 @@ static int
 realloc_error_message(char **target, int curlen, int nextlen)
 {
     if (curlen < nextlen + MEMORY_MARGIN) {
-#if defined(DEBUG)
-        syslog(LOG_WARNING,
+        ppm_log(LOG_WARNING,
                "ppm: Reallocating szErrStr from %d to %d", curlen,
                nextlen + MEMORY_MARGIN);
-#endif
         ber_memfree(*target);
         curlen = nextlen + MEMORY_MARGIN;
         *target = (char *) ber_memalloc(curlen);
@@ -256,9 +267,7 @@ containsRDN(char* passwd, char* DN)
         // Compile regular expression
         reti = regcomp(&regex, token, REG_ICASE);
         if (reti) {
- #if defined(DEBUG)
-          syslog(LOG_ERR, "ppm: Cannot compile regex: %s", token);
- #endif
+          ppm_log(LOG_ERR, "ppm: Cannot compile regex: %s", token);
           exit(EXIT_FAILURE);
         }
       }
@@ -282,10 +291,8 @@ containsRDN(char* passwd, char* DN)
 int
 check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
 {
-    
-#if defined(DEBUG)
-    syslog(LOG_NOTICE, "ppm: Entry %s", pEntry->e_nname.bv_val);
-#endif
+
+    ppm_log(LOG_NOTICE, "ppm: entry %s", pEntry->e_nname.bv_val);
 
     char *szErrStr = (char *) ber_memalloc(MEM_INIT_SZ);
     int mem_len = MEM_INIT_SZ;
@@ -307,9 +314,7 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
     if (ppm_config_file[0] == '\0') {
       strcpy_safe(ppm_config_file, CONFIG_FILE, FILENAME_MAX_LEN);
     }
-#if defined(DEBUG)
-    syslog(LOG_NOTICE, "ppm: reading config file from %s", ppm_config_file);
-#endif
+    ppm_log(LOG_NOTICE, "ppm: reading config file from %s", ppm_config_file);
 
     for (i = 0; i < CONF_MAX_SIZE; i++)
         nbInClass[i] = 0;
@@ -397,10 +402,8 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
                 && strlen(fileConf[i].value.sVal) != 0) {
                 // 1 point granted
                 ++nQuality;
-#if defined(DEBUG)
-                syslog(LOG_NOTICE, "ppm: 1 point granted for class %s",
+                ppm_log(LOG_NOTICE, "ppm: 1 point granted for class %s",
                        fileConf[i].param);
-#endif
             }
         }
     }
@@ -447,10 +450,8 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
             if ((nbInClass[i] > maxConsecutivePerClass)
                 && maxConsecutivePerClass != 0) {
                 // Too much consecutive characters of the same class
-#if defined(DEBUG)
-                syslog(LOG_NOTICE, "ppm: Too much consecutive chars for class %s",
+                ppm_log(LOG_NOTICE, "ppm: Too much consecutive chars for class %s",
                        fileConf[i].param);
-#endif
                 mem_len = realloc_error_message(&szErrStr, mem_len,
                                         strlen(PASSWORD_MAXCONSECUTIVEPERCLASS) +
                                         strlen(pEntry->e_name.bv_val) + 2 +

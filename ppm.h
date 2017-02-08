@@ -36,6 +36,8 @@
 #define TOKENS_DELIMITERS                 " ,;-_£\t"
 
 
+#define DEBUG_MSG_MAX_LEN                 256
+
 #define PASSWORD_TOO_LONG_SZ \
   "Password for dn=\"%s\" is too long (%d / %d)"
 #define PASSWORD_QUALITY_SZ \
@@ -91,7 +93,7 @@ typedef struct conf {
     int minForPoint;
 } conf;
 
-
+void ppm_log(int priority, const char *format, ...);
 int min(char *str1, char *str2);
 static void read_config_file(conf * fileConf, int *numParam, char *ppm_config_file);
 int check_password(char *pPasswd, char **ppErrStr, Entry * pEntry);
@@ -100,5 +102,8 @@ void storeEntry(char *param, char *value, valueType valType,
 int typeParam(char* param);
 genValue* getValue(conf *fileConf, int numParam, char* param);
 void strcpy_safe(char *dest, char *src, int length_dest);
+
+
+int ppm_test = 0;
 
 #endif

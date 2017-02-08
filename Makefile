@@ -29,6 +29,8 @@ LDAP_LIB=-lldap_r -llber
 
 LIBS=$(LDAP_LIB)
 
+TESTS=./unit_tests.sh
+
 
 
 all: 	ppm ppm_test
@@ -44,9 +46,14 @@ ppm: clean ppm.o
 
 install: ppm
 	cp -f ppm.so $(LIBDIR)
+	cp -f ppm_test $(LIBDIR)
 	cp -f ppm.conf $(CONFIG)
 
 clean:
 	$(RM) ppm.o ppm.so ppm.lo ppm_test
 	$(RM) -r .libs
+
+test: ppm ppm_test
+	$(TESTS)
+
 
