@@ -74,6 +74,37 @@ getValue(conf *fileConf, int numParam, char* param)
     return NULL;
 }
 
+int maxConsPerClass(char *password, char *charClass)
+{
+  // find maximum number of consecutive class characters in the password
+
+  int bestMax = 0;
+  int max = 0;
+  int i;
+
+  for(i=0 ; i<strlen(password) ; i++)
+  {
+    if(strchr(charClass,password[i]) != NULL)
+    {
+      // current character is in class
+      max++;
+      // is the new max a better candidate to maxConsecutivePerClass?
+      if(max > bestMax)
+      {
+        // found a better maxConsecutivePerClass
+        bestMax = max;
+      }
+    }
+    else
+    {
+      // current character is not in class
+      // reinitialize max
+      max=0;
+    }
+  }
+  return bestMax;
+}
+
 void
 storeEntry(char *param, char *value, valueType valType, 
            char *min, char *minForPoint, conf * fileConf, int *numParam)
@@ -447,8 +478,9 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
     // Password checking done, now loocking for maxConsecutivePerClass criteria
     for (i = 0; i < CONF_MAX_SIZE; i++) {
         if (strstr(fileConf[i].param, "class-") != NULL) {
-            if ((nbInClass[i] > maxConsecutivePerClass)
-                && maxConsecutivePerClass != 0) {
+            if ( maxConsecutivePerClass != 0 &&
+                (maxConsPerClass(pPasswd,fileConf[i].value.sVal)
+                                                 > maxConsecutivePerClass)) {
                 // Too much consecutive characters of the same class
                 ppm_log(LOG_NOTICE, "ppm: Too much consecutive chars for class %s",
                        fileConf[i].param);

@@ -97,6 +97,7 @@ void ppm_log(int priority, const char *format, ...);
 int min(char *str1, char *str2);
 static void read_config_file(conf * fileConf, int *numParam, char *ppm_config_file);
 int check_password(char *pPasswd, char **ppErrStr, Entry * pEntry);
+int maxConsPerClass(char *password, char *charClass);
 void storeEntry(char *param, char *value, valueType valType, 
            char *min, char *minForPoint, conf * fileConf, int *numParam);
 int typeParam(char* param);
