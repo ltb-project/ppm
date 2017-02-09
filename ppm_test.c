@@ -13,6 +13,7 @@ int main(int argc, char *argv[])
     char *errmsg = NULL;
     Entry pEntry;
     pEntry.e_nname.bv_val="user";
+    pEntry.e_name.bv_val="user";
   
     ppm_test=1; // enable ppm_test for informing ppm not to use syslog
 
