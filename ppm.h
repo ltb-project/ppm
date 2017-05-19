@@ -30,7 +30,7 @@
 
 #define CONF_MAX_SIZE                      50
 #define PARAM_MAX_LEN                      32
-#define VALUE_MAX_LEN                      60
+#define VALUE_MAX_LEN                      128
 
 #define PARAM_PREFIX_CLASS                "class-"
 #define TOKENS_DELIMITERS                 " ,;-_£\t"
@@ -50,6 +50,10 @@
   "Password for dn=\"%s\" contains %d forbidden characters in %s"
 #define RDN_TOKEN_FOUND \
   "Password for dn=\"%s\" contains tokens from the RDN"
+#define GENERIC_ERROR \
+  "Error while checking password"
+#define PASSWORD_CRACKLIB \
+  "Password for dn=\"%s\" is too weak"
 #define BAD_PASSWORD_SZ \
   "Bad password for dn=\"%s\" because %s"
 
@@ -72,12 +76,14 @@ typedef struct params {
 
 // allowed parameters loaded into configuration structure
 // it also contains the type of the corresponding value
-params allowedParameters[6] = {
+params allowedParameters[8] = {
     {"^maxLength", typeInt},
     {"^minQuality", typeInt},
     {"^checkRDN", typeInt},
     {"^forbiddenChars", typeStr},
     {"^maxConsecutivePerClass", typeInt},
+    {"^useCracklib", typeInt},
+    {"^cracklibDict", typeStr},
     {"^class-.*", typeStr}
 };
 

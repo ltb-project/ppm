@@ -4,7 +4,7 @@ ppm.c - OpenLDAP password policy module
 2016    David Coutadeur <david.coutadeur@gmail.com>
         Daly Chikhaoui - Janua <dchikhaoui@janua.fr>
 
-version 1.5
+version 1.6
 
 ppm.c is an OpenLDAP module for checking password quality when they are modified.
 Passwords are checked against the presence or absence of certain character classes.
@@ -39,7 +39,7 @@ A point is validated when at least m characters of the corresponding
 character class are present in the password.
 
 - passwords must have at least n of the corresponding character class
-present, else they are rejected
+present, else they are rejected.
 
 - the two previous criterias are checked against any specific character class
 defined.
@@ -47,9 +47,11 @@ defined.
 - if a password contains any of the forbidden characters, then it is
 rejected.
 
-- if a password contains tokens from the RDN, then it is rejected
+- if a password contains tokens from the RDN, then it is rejected.
 
 - if a password is too long, it can be rejected.
+
+- if a password does not pass cracklib check, it can be rejected.
 
 
 Configuration file
@@ -105,6 +107,22 @@ forbiddenChars
 # Description:
 # Defines the maximum number of consecutive character allowed for any class
 maxConsecutivePerClass 0
+
+# useCracklib parameter
+# Format:
+# useCracklib [0 | 1]
+# Description:
+# If set to 1, the password must pass the cracklib check
+useCracklib 0
+
+# cracklibDict parameter
+# Format:
+# cracklibDict [path_to_cracklib_dictionnary]
+# Description:
+# directory+filename-prefix that your version of CrackLib will go hunting for
+# For example, /var/pw_dict resolves as /var/pw_dict.pwd,
+# /var/pw_dict.pwi and /var/pw_dict.hwm dictionnary files
+cracklibDict /var/cache/cracklib/cracklib_dict
 
 # classes parameter
 # Format:
@@ -189,6 +207,9 @@ TODO
 
 HISTORY
 -------
+* 2017-05-19 David Coutadeur <david.coutadeur@gmail.com>
+  Adds cracklib support
+  Version 1.6
 * 2017-02-07 David Coutadeur <david.coutadeur@gmail.com>
   Adds maxConsecutivePerClass (idea from Trevor Vaughan / tvaughan@onyxpoint.com)
   Version 1.5

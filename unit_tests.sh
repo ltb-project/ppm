@@ -18,6 +18,8 @@ maxLength 0
 checkRDN 0
 forbiddenChars 
 maxConsecutivePerClass 0
+useCracklib 0
+cracklibDict /var/cache/cracklib/cracklib_dict
 class-upperCase ABCDEFGHIJKLMNOPQRSTUVWXYZ 0 1
 class-lowerCase abcdefghijklmnopqrstuvwxyz 0 1
 class-digit 0123456789 0 1
@@ -28,6 +30,8 @@ maxLength 20
 checkRDN 0
 forbiddenChars à
 maxConsecutivePerClass 5
+useCracklib 0
+cracklibDict /var/cache/cracklib/cracklib_dict
 class-upperCase ABCDEFGHIJKLMNOPQRSTUVWXYZ 2 4
 class-lowerCase abcdefghijklmnopqrstuvwxyz 3 4
 class-digit 0123456789 2 4

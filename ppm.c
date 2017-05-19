@@ -13,6 +13,9 @@
 #include <stdarg.h>             // for variable nb of arguments functions
 #include "ppm.h"
 
+#ifdef CRACKLIB
+#include "crack.h"              // use cracklib to check password
+#endif
 
 
 void
@@ -330,6 +333,12 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
     int numParam = 0; // Number of params in current configuration
 
     int maxLength;
+    int useCracklib;
+    char cracklibDict[VALUE_MAX_LEN];
+    char cracklibDictFiles[3][(VALUE_MAX_LEN+5)];
+    char const* cracklibExt[] = { ".hwm", ".pwd", ".pwi" };
+    FILE* fd;
+    char* res;
     int minQuality;
     int checkRDN;
     char forbiddenChars[VALUE_MAX_LEN];
@@ -337,7 +346,7 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
     int nQuality = 0;
     int maxConsecutivePerClass;
     int nbInClass[CONF_MAX_SIZE];
-    int i;
+    int i,j;
     char ppm_config_file[FILENAME_MAX_LEN];
 
     /* Determine config file */
@@ -367,6 +376,12 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
         {"maxConsecutivePerClass", typeInt, {.iVal = 0}, 0, 0
          }
         ,
+        {"useCracklib", typeInt, {.iVal = 0}, 0, 0
+         }
+        ,
+        {"cracklibDict", typeStr, {.sVal = "/var/cache/cracklib/cracklib_dict"}, 0, 0
+         }
+        ,
         {"class-upperCase", typeStr, {.sVal = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}, 0, 1
          }
         ,
@@ -380,7 +395,7 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
          {.sVal = "<>,?;.:/!§ù%*µ^¨$£²&é~\"#'{([-|è`_\\ç^à@)]°=}+"}, 0, 1
          }
     };
-    numParam = 9;
+    numParam = 11;
 
     /* Read config file */
     read_config_file(fileConf, &numParam, ppm_config_file);
@@ -392,6 +407,10 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
                 getValue(fileConf, numParam, "forbiddenChars")->sVal,
                 VALUE_MAX_LEN);
     maxConsecutivePerClass = getValue(fileConf, numParam, "maxConsecutivePerClass")->iVal;
+    useCracklib = getValue(fileConf, numParam, "useCracklib")->iVal;
+    strcpy_safe(cracklibDict,
+                getValue(fileConf, numParam, "cracklibDict")->sVal,
+                VALUE_MAX_LEN);
 
 
     /*The password must have at least minQuality strength points with one
@@ -494,6 +513,40 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
             }
         }
     }
+#ifdef CRACKLIB
+    // Password checking done, now loocking for cracklib criteria
+    if ( useCracklib > 0 ) {
+
+        for( j = 0 ; j < 3 ; j++) {
+            strcpy_safe(cracklibDictFiles[j], cracklibDict, VALUE_MAX_LEN);
+            strcat(cracklibDictFiles[j], cracklibExt[j]);
+            if (( fd = fopen ( cracklibDictFiles[j], "r")) == NULL ) {
+                ppm_log(LOG_NOTICE, "ppm: Error while reading %s file",
+                       cracklibDictFiles[j]);
+                mem_len = realloc_error_message(&szErrStr, mem_len,
+                                strlen(GENERIC_ERROR));
+                sprintf(szErrStr, GENERIC_ERROR);
+                goto fail;
+
+            }
+            else {
+                fclose (fd);
+            }
+        }
+        res = (char *) FascistCheck (pPasswd, cracklibDict);
+        if ( res != NULL ) {
+                ppm_log(LOG_NOTICE, "ppm: cracklib does not validate password for entry %s",
+                       pEntry->e_name.bv_val);
+                mem_len = realloc_error_message(&szErrStr, mem_len,
+                                        strlen(PASSWORD_CRACKLIB) +
+                                        strlen(pEntry->e_name.bv_val));
+                sprintf(szErrStr, PASSWORD_CRACKLIB, pEntry->e_name.bv_val);
+                goto fail;
+        
+        }
+
+    }
+#endif
 
     // Password checking done, now looking for checkRDN criteria
     if (checkRDN == 1 && containsRDN(pPasswd, pEntry->e_name.bv_val))

@@ -23,11 +23,15 @@ LDAP_INC=-I../include \
 LDAP_LIBS=-L../libraries/liblber/.libs \
 	  -L../libraries/libldap_r/.libs
 
+CRACK_INC=-DCRACKLIB
+
 INCS=$(LDAP_INC) $(CRACK_INC)
 
 LDAP_LIB=-lldap_r -llber
 
-LIBS=$(LDAP_LIB)
+CRACK_LIB=-lcrack
+
+LIBS=$(LDAP_LIB) $(CRACK_LIB)
 
 TESTS=./unit_tests.sh
 
@@ -36,7 +40,7 @@ TESTS=./unit_tests.sh
 all: 	ppm ppm_test
 
 ppm_test: 
-	$(CC) $(LDAP_INC) $(LDAP_LIBS) $(LIBS) ppm.so -o ppm_test ppm_test.c
+	$(CC) $(LDAP_INC) $(LDAP_LIBS) $(LIBS) ppm.so -o ppm_test ppm_test.c 
 
 ppm.o:
 	$(CC) $(OPT) -c $(INCS) ppm.c
