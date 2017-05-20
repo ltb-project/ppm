@@ -200,6 +200,18 @@ Jul 27 20:09:14 machine slapd[20270]: ppm: 1 point granted for class class-digit
 ```
 
 
+Tests
+-----
+
+There is a unit test script: "unit_tests.sh" that illustrates checking some passwords.
+It is possible to test one particular password using directly the test program:
+
+```
+cd /usr/local/openldap/lib64
+PPM_CONFIG_FILE=/usr/local/openldap/etc/openldap/ppm.conf LD_LIBRARY_PATH=. ./ppm_test "my_password" && echo OK
+```
+
+
 TODO
 ----
 * integrate configuration file into cn=config
