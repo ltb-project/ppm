@@ -1,9 +1,6 @@
 
 ppm.c - OpenLDAP password policy module
 
-2016    David Coutadeur <david.coutadeur@gmail.com>
-        Daly Chikhaoui - Janua <dchikhaoui@janua.fr>
-
 version 1.6
 
 ppm.c is an OpenLDAP module for checking password quality when they are modified.
@@ -12,6 +9,11 @@ Passwords are checked against the presence or absence of certain character class
 This module is used as an extension of the OpenLDAP password policy controls,
 see slapo-ppolicy(5) section pwdCheckModule.
 
+contributions
+-------------
+
+* 2014 - 2017 - David Coutadeur <david.coutadeur@gmail.com> - maintainer
+* 2015 - Daly Chikhaoui - Janua <dchikhaoui@janua.fr> - contribution on RDN checks
 
 
 INSTALLATION
@@ -221,6 +223,7 @@ HISTORY
 -------
 * 2017-05-19 David Coutadeur <david.coutadeur@gmail.com>
   Adds cracklib support
+  Readme adaptations and cleaning
   Version 1.6
 * 2017-02-07 David Coutadeur <david.coutadeur@gmail.com>
   Adds maxConsecutivePerClass (idea from Trevor Vaughan / tvaughan@onyxpoint.com)
