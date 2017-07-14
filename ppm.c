@@ -206,7 +206,7 @@ read_config_file(conf * fileConf, int *numParam, char *ppm_config_file)
     ppm_log(LOG_NOTICE, "ppm: Opening file %s", ppm_config_file);
     if ((config = fopen(ppm_config_file, "r")) == NULL) {
         ppm_log(LOG_ERR, "ppm: Opening file %s failed", ppm_config_file);
-
+        exit(EXIT_FAILURE);
     }
 
     while (fgets(line, 256, config) != NULL) {
