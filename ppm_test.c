@@ -6,7 +6,7 @@ int main(int argc, char *argv[])
 {
   int ret = 1;
 
-  if(argc > 0)
+  if(argc > 1)
   {
     printf("Testing password : %s\n", argv[1]);
 
