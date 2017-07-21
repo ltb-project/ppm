@@ -6,7 +6,7 @@ int main(int argc, char *argv[])
 {
   int ret = 1;
 
-  if(argc > 0)
+  if(argc > 1)
   {
     printf("Testing password : %s\n", argv[1]);
 
@@ -19,6 +19,15 @@ int main(int argc, char *argv[])
 
     ret = check_password(argv[1], &errmsg, &pEntry);
   
+    if(ret == 0)
+    {
+      printf("Password is OK!\n");
+    }
+    else
+    {
+      printf("Password failed checks : %s\n", errmsg);
+    }
+
     ber_memfree(errmsg);
     return ret;
 

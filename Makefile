@@ -40,13 +40,13 @@ TESTS=./unit_tests.sh
 all: 	ppm ppm_test
 
 ppm_test: 
-	$(CC) $(LDAP_INC) $(LDAP_LIBS) $(LIBS) ppm.so -o ppm_test ppm_test.c 
+	$(CC) $(LDAP_INC) $(LDAP_LIBS) -Wl,-rpath=. -o ppm_test ppm_test.c ppm.so $(LIBS)
 
 ppm.o:
 	$(CC) $(OPT) -c $(INCS) ppm.c
 
 ppm: clean ppm.o
-	$(CC) $(LDAP_INC) -shared -o ppm.so ppm.o
+	$(CC) $(LDAP_INC) -shared -o ppm.so ppm.o $(CRACK_LIB)
 
 install: ppm
 	cp -f ppm.so $(LIBDIR)
