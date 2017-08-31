@@ -45,7 +45,7 @@ ppm_test:
 ppm.o:
 	$(CC) $(OPT) -c $(INCS) ppm.c
 
-ppm: clean ppm.o
+ppm: ppm.o
 	$(CC) $(LDAP_INC) -shared -o ppm.so ppm.o $(CRACK_LIB)
 
 install: ppm
