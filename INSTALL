@@ -4,7 +4,7 @@ INSTALLATION
 Build dependencies
 ------------------
 OpenLDAP sources must be available. For an easier build, copy all ppm module
-into contrib/slapd-modules.
+into contrib/slapd-modules OpenLDAP source directory.
 
 Build
 -----
@@ -12,14 +12,19 @@ Be sure to have copied ppm module into contrib/slapd-modules OpenLDAP source
 directory.
 
 Adapt the Makefile command to indicate:
+OLDAP_SOURCES : should point to OpenLDAP source directory
 CONFIG: where the ppm.conf configuration file will finally stand
 LIBDIR: where the library will be installed
 DEBUG: If defined, ppm logs its actions with syslog
 
+If necessary, you can also adapt some OpenLDAP source directories (if changed):
+LDAP_INC : OpenLDAP headers directory
+LDAP_LIBS : OpenLDAP built libraries directory
+
 then type:
 
 make clean
-make CONFIG=/etc/openldap/ppm.conf LIBDIR=/usr/lib/openldap
+make CONFIG=/etc/openldap/ppm.conf OLDAP_SOURCES=../../..
 make install CONFIG=/etc/openldap/ppm.conf LIBDIR=/usr/lib/openldap
 
 

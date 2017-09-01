@@ -4,9 +4,11 @@
 
 CC=gcc
 
-# Path to the configuration file
-#
+# Path of OpenLDAP sources
+OLDAP_SOURCES=../../..
+# Where the ppm configuration file should be installed
 CONFIG=/etc/openldap/ppm.conf
+# Path of OpenLDAP installed libs, where the ppm library should be installed
 LIBDIR=/usr/lib/openldap
 
 OPT=-g -O2 -Wall -fpic 						\
@@ -15,13 +17,13 @@ OPT=-g -O2 -Wall -fpic 						\
 
 # Where to find the OpenLDAP headers.
 
-LDAP_INC=-I../include \
-	 -I../servers/slapd
+LDAP_INC=-I$(OLDAP_SOURCES)/include \
+	 -I$(OLDAP_SOURCES)/servers/slapd
 
 # Where to find the OpenLDAP libraries.
 
-LDAP_LIBS=-L../libraries/liblber/.libs \
-	  -L../libraries/libldap_r/.libs
+LDAP_LIBS=-L$(OLDAP_SOURCES)/libraries/liblber/.libs \
+	  -L$(OLDAP_SOURCES)/libraries/libldap_r/.libs
 
 CRACK_INC=-DCRACKLIB
 
@@ -45,7 +47,7 @@ ppm_test:
 ppm.o:
 	$(CC) $(OPT) -c $(INCS) ppm.c
 
-ppm: clean ppm.o
+ppm: ppm.o
 	$(CC) $(LDAP_INC) -shared -o ppm.so ppm.o $(CRACK_LIB)
 
 install: ppm
@@ -53,9 +55,11 @@ install: ppm
 	cp -f ppm_test $(LIBDIR)
 	cp -f ppm.conf $(CONFIG)
 
+.PHONY: clean
+
 clean:
-	$(RM) ppm.o ppm.so ppm.lo ppm_test
-	$(RM) -r .libs
+	$(RM) -f ppm.o ppm.so ppm.lo ppm_test
+	$(RM) -rf .libs
 
 test: ppm ppm_test
 	$(TESTS)
