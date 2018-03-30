@@ -1,7 +1,7 @@
 
 ppm.c - OpenLDAP password policy module
 
-version 1.6
+version 1.7
 
 ppm.c is an OpenLDAP module for checking password quality when they are modified.
 Passwords are checked against the presence or absence of certain character classes.
@@ -222,6 +222,10 @@ TODO
 
 HISTORY
 -------
+* 2018-03-30 David Coutadeur <david.coutadeur@gmail.com>
+  various minor improvements provided by Tim Bishop (tdb) (compilation, test program,
+  imprvts in Makefile: new OLDAP_SOURCES variable pointing to OLDAP instal. directory
+  Version 1.7
 * 2017-05-19 David Coutadeur <david.coutadeur@gmail.com>
   Adds cracklib support
   Readme adaptations and cleaning
