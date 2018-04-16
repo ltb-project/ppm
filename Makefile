@@ -42,7 +42,7 @@ TESTS=./unit_tests.sh
 all: 	ppm ppm_test
 
 ppm_test: 
-	$(CC) $(LDAP_INC) $(LDAP_LIBS) -Wl,-rpath=. -o ppm_test ppm_test.c ppm.so $(LIBS)
+	$(CC) -g $(LDAP_INC) $(LDAP_LIBS) -Wl,-rpath=. -o ppm_test ppm_test.c ppm.so $(LIBS)
 
 ppm.o:
 	$(CC) $(OPT) -c $(INCS) ppm.c
