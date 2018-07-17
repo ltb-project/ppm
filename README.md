@@ -211,7 +211,7 @@ It is possible to test one particular password using directly the test program:
 
 ```
 cd /usr/local/openldap/lib64
-PPM_CONFIG_FILE=/usr/local/openldap/etc/openldap/ppm.conf LD_LIBRARY_PATH=. ./ppm_test "my_password" && echo OK
+PPM_CONFIG_FILE=/usr/local/openldap/etc/openldap/ppm.conf LD_LIBRARY_PATH=. ./ppm_test "uid=test,ou=users,dc=my-domain,dc=com" "my_password" && echo OK
 ```
 
 

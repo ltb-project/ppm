@@ -37,8 +37,22 @@ class-lowerCase abcdefghijklmnopqrstuvwxyz 3 4
 class-digit 0123456789 2 4
 class-special <>,?;.:/!§ù%*µ^¨$£²&é~"#'\''{([-|è`_\ç^à@)]°=}+ 0 4'
 
+PPM_CONF_3='minQuality 3
+maxLength 0
+checkRDN 1
+forbiddenChars 
+maxConsecutivePerClass 0
+useCracklib 0
+cracklibDict /var/cache/cracklib/cracklib_dict
+class-upperCase ABCDEFGHIJKLMNOPQRSTUVWXYZ 0 1
+class-lowerCase abcdefghijklmnopqrstuvwxyz 0 1
+class-digit 0123456789 0 1
+class-special <>,?;.:/!§ù%*µ^¨$£²&é~"#'\''{([-|è`_\ç^à@)]°=}+ 0 1'
+
+
 echo "$PPM_CONF_1" > ppm1.conf
 echo "$PPM_CONF_2" > ppm2.conf
+echo "$PPM_CONF_3" > ppm3.conf
 
 
 launch_test()
@@ -92,10 +106,13 @@ launch_test "ppm2.conf" "uid=test,ou=users,dc=my-domain,dc=com" "1AAAA.;BBB.;.;A
 # not enough points (no point for digit)
 launch_test "ppm2.conf" "uid=test,ou=users,dc=my-domain,dc=com" "AAaaaBBBBaaa01AAaaaa" "FAIL"
 
+# password in RDN
+launch_test "ppm3.conf" "uid=User_Password10-test,ou=users,dc=my-domain,dc=com" "Password10" "FAIL"
+launch_test "ppm3.conf" "uid=User_Passw0rd-test,ou=users,dc=my-domain,dc=com" "Password10" "PASS"
 
 
 echo "${RESULT} error(s) encountered"
 
-rm ppm1.conf ppm2.conf
+rm ppm1.conf ppm2.conf ppm3.conf
 exit ${RESULT}
 

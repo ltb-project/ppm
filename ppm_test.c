@@ -8,7 +8,7 @@ int main(int argc, char *argv[])
 
   if(argc > 2)
   {
-    printf("Testing password : %s\n", argv[1]);
+    printf("Testing password : '%s' for user %s\n", argv[2], argv[1]);
 
     char *errmsg = NULL;
     Entry pEntry;
