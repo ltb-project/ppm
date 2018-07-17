@@ -48,18 +48,19 @@ launch_test()
   # [expected_result] = [PASS|FAIL]
 
   local CONF="$1"
-  local PASS="$2"
-  local EXPECT="$3"
+  local USER="$2"
+  local PASS="$3"
+  local EXPECT="$4"
 
   [[ $EXPECT == "PASS" ]] && EXP="0" || EXP="1"
 
-  PPM_CONFIG_FILE="${CONF}" LD_LIBRARY_PATH="${LIB_PATH}" ./ppm_test "${PASS}"
+  PPM_CONFIG_FILE="${CONF}" LD_LIBRARY_PATH="${LIB_PATH}" ./ppm_test "${USER}" "${PASS}"
   RES="$?"
 
   if [ "$RES" -eq "$EXP" ] ; then
-    echo -e "conf=${CONF} pass=${PASS} expect=${EXPECT}... ${GREEN}PASS${NC}"
+    echo -e "conf=${CONF} user=${USER} pass=${PASS} expect=${EXPECT}... ${GREEN}PASS${NC}"
   else
-    echo -e "conf=${CONF} pass=${PASS} expect=${EXPECT}... ${RED}FAIL${NC}"
+    echo -e "conf=${CONF} user=${USER} pass=${PASS} expect=${EXPECT}... ${RED}FAIL${NC}"
     ((RESULT+=1))
   fi
 
@@ -69,27 +70,27 @@ launch_test()
 
 
 
-launch_test "ppm1.conf" "azerty" "FAIL"
-launch_test "ppm1.conf" "azeRTY" "FAIL"
-launch_test "ppm1.conf" "azeRTY123" "PASS"
-launch_test "ppm1.conf" "azeRTY." "PASS"
+launch_test "ppm1.conf" "uid=test,ou=users,dc=my-domain,dc=com" "azerty" "FAIL"
+launch_test "ppm1.conf" "uid=test,ou=users,dc=my-domain,dc=com" "azeRTY" "FAIL"
+launch_test "ppm1.conf" "uid=test,ou=users,dc=my-domain,dc=com" "azeRTY123" "PASS"
+launch_test "ppm1.conf" "uid=test,ou=users,dc=my-domain,dc=com" "azeRTY." "PASS"
 
 
-launch_test "ppm2.conf" "AAaaa01AAaaa01AAaaa0" "PASS"
+launch_test "ppm2.conf" "uid=test,ou=users,dc=my-domain,dc=com" "AAaaa01AAaaa01AAaaa0" "PASS"
 # too long
-launch_test "ppm2.conf" "AAaaa01AAaaa01AAaaa01" "FAIL"
+launch_test "ppm2.conf" "uid=test,ou=users,dc=my-domain,dc=com" "AAaaa01AAaaa01AAaaa01" "FAIL"
 # forbidden char
-launch_test "ppm2.conf" "AAaaa01AAaaa01AAaaaà" "FAIL"
+launch_test "ppm2.conf" "uid=test,ou=users,dc=my-domain,dc=com" "AAaaa01AAaaa01AAaaaà" "FAIL"
 # too much consecutive for upper
-launch_test "ppm2.conf" "AAaaa01AAaaa01AAAAAA" "FAIL"
+launch_test "ppm2.conf" "uid=test,ou=users,dc=my-domain,dc=com" "AAaaa01AAaaa01AAAAAA" "FAIL"
 # not enough upper
-launch_test "ppm2.conf" "Aaaaa01aaaaa01aa.;.;" "FAIL"
+launch_test "ppm2.conf" "uid=test,ou=users,dc=my-domain,dc=com" "Aaaaa01aaaaa01aa.;.;" "FAIL"
 # not enough lower
-launch_test "ppm2.conf" "aaAAA01BB0123AAA.;.;" "FAIL"
+launch_test "ppm2.conf" "uid=test,ou=users,dc=my-domain,dc=com" "aaAAA01BB0123AAA.;.;" "FAIL"
 # not enough digit
-launch_test "ppm2.conf" "1AAAA.;BBB.;.;AA.;.;" "FAIL"
+launch_test "ppm2.conf" "uid=test,ou=users,dc=my-domain,dc=com" "1AAAA.;BBB.;.;AA.;.;" "FAIL"
 # not enough points (no point for digit)
-launch_test "ppm2.conf" "AAaaaBBBBaaa01AAaaaa" "FAIL"
+launch_test "ppm2.conf" "uid=test,ou=users,dc=my-domain,dc=com" "AAaaaBBBBaaa01AAaaaa" "FAIL"
 
 
 
