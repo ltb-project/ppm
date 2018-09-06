@@ -31,6 +31,7 @@
 #define CONF_MAX_SIZE                      50
 #define PARAM_MAX_LEN                      32
 #define VALUE_MAX_LEN                      128
+#define ATTR_NAME_MAX_LEN                  150
 
 #define PARAM_PREFIX_CLASS                "class-"
 #define TOKENS_DELIMITERS                 " ,;-_£\t"
@@ -109,6 +110,8 @@ void storeEntry(char *param, char *value, valueType valType,
 int typeParam(char* param);
 genValue* getValue(conf *fileConf, int numParam, char* param);
 void strcpy_safe(char *dest, char *src, int length_dest);
+int countPwdFailureTime( Attribute *attrs );
+void getLastPwdFailureTime( Attribute *attrs );
 
 
 int ppm_test = 0;
