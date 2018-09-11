@@ -322,116 +322,6 @@ containsRDN(char* passwd, char* DN)
 }
 
 
-// Count number of pwdFailureTime values in user entry
-int
-countPwdFailureTime( Attribute *attrs )
-{
-    char desc[ATTR_NAME_MAX_LEN];
-    int num = 0;
-    char *desc_val;
-    int desc_len;
-
-    // regex variables
-    regex_t regex;
-    int reti;
-    // Compile regular expression
-    reti = regcomp(&regex, "pwdFailureTime", REG_ICASE );
-
-    while( attrs->a_next != NULL )
-    {
-        desc_val = attrs->a_desc->ad_cname.bv_val;
-        desc_len = (int) attrs->a_desc->ad_cname.bv_len;
-        strncpy(desc,desc_val,desc_len);
-        desc[desc_len]='\0';
-
-        // Execute regular expression
-        reti = regexec(&regex, desc, 0, NULL, 0);
-        if (!reti)
-        {
-            // Found pwdFailureTime attribute
-            // Count number of values
-            num = attrs->a_numvals;
-            ppm_log(LOG_NOTICE, "ppm: Number of failed authentication: %d", num);
-            break;
-        }
-
-        attrs = attrs->a_next;
-    }
-
-    regfree(&regex);
-
-    return num;
-}
-
-// Get last pwdFailureTime value in user entry
-void
-getLastPwdFailureTime( Attribute *attrs )
-{
-    char desc[ATTR_NAME_MAX_LEN];
-    char val[15];
-    int num = 0;
-    char *desc_val;
-    int desc_len;
-    char *value_val;
-    int value_len;
-    int i,j;
-
-    // regex variables
-    regex_t regex;
-    int reti;
-    // Compile regular expression
-    reti = regcomp(&regex, "pwdFailureTime", REG_ICASE );
-
-    while( attrs->a_next != NULL )
-    {
-        desc_val = attrs->a_desc->ad_cname.bv_val;
-        desc_len = (int) attrs->a_desc->ad_cname.bv_len;
-        strncpy(desc,desc_val,desc_len);
-        desc[desc_len]='\0';
-
-        // Execute regular expression
-        reti = regexec(&regex, desc, 0, NULL, 0);
-        if (!reti)
-        {
-            // Found pwdFailureTime attribute
-            // Get all values
-            num = attrs->a_numvals;
-            for(i=0 ; i< num ; i++)
-            {
-                value_val = attrs->a_vals[i].bv_val;
-                value_len = attrs->a_vals[i].bv_len;
-                if(value_len < 14)
-                {
-                    ppm_log(LOG_ERR, "ppm: pwdFailureTime has insufficient digits (14)");
-                    exit(EXIT_FAILURE);
-                }
-                // check if new value is superior
-                for(j=0 ; j<14 ; j++)
-                {
-                    if(value_val[j] > val[j])
-                    {
-                        strncpy(val,value_val,14);
-                        val[14]='\0';
-                        break;
-                    }
-                    else if(value_val[j] < val[j])
-                    {
-                        break;
-                    }
-                }
-            }
-            ppm_log(LOG_NOTICE, "ppm: last failed authentication: %s", val);
-            break;
-        }
-
-        attrs = attrs->a_next;
-    }
-
-    regfree(&regex);
-
-}
-
-
 int
 check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
 {
@@ -458,9 +348,6 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
     int nbInClass[CONF_MAX_SIZE];
     int i,j;
     char ppm_config_file[FILENAME_MAX_LEN];
-
-    //countPwdFailureTime(pEntry->e_attrs);
-    //getLastPwdFailureTime(pEntry->e_attrs);
 
     /* Determine config file */
     strcpy_safe(ppm_config_file, getenv("PPM_CONFIG_FILE"), FILENAME_MAX_LEN);

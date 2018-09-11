@@ -110,8 +110,6 @@ void storeEntry(char *param, char *value, valueType valType,
 int typeParam(char* param);
 genValue* getValue(conf *fileConf, int numParam, char* param);
 void strcpy_safe(char *dest, char *src, int length_dest);
-int countPwdFailureTime( Attribute *attrs );
-void getLastPwdFailureTime( Attribute *attrs );
 
 
 int ppm_test = 0;
