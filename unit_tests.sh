@@ -109,6 +109,7 @@ launch_test "ppm2.conf" "uid=test,ou=users,dc=my-domain,dc=com" "AAaaaBBBBaaa01A
 # password in RDN
 launch_test "ppm3.conf" "uid=User_Password10-test,ou=users,dc=my-domain,dc=com" "Password10" "FAIL"
 launch_test "ppm3.conf" "uid=User_Passw0rd-test,ou=users,dc=my-domain,dc=com" "Password10" "PASS"
+launch_test "ppm3.conf" "uid=User-Pw-Test,ou=users,dc=my-domain,dc=com" "Password10" "PASS"
 
 
 echo "${RESULT} error(s) encountered"

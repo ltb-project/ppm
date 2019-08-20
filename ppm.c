@@ -298,23 +298,28 @@ containsRDN(char* passwd, char* DN)
     {
       if (strlen(token) > 2)
       {
+        ppm_log(LOG_NOTICE, "ppm: Checking if %s part of RDN matches the password", token);
         // Compile regular expression
         reti = regcomp(&regex, token, REG_ICASE);
         if (reti) {
           ppm_log(LOG_ERR, "ppm: Cannot compile regex: %s", token);
           exit(EXIT_FAILURE);
         }
-      }
  
-      // Execute regular expression
-      reti = regexec(&regex, passwd, 0, NULL, 0);
-      if (!reti)
-      {
+        // Execute regular expression
+        reti = regexec(&regex, passwd, 0, NULL, 0);
+        if (!reti)
+        {
+          regfree(&regex);
+          return 1;
+        }
+ 
         regfree(&regex);
-        return 1;
       }
- 
-      regfree(&regex);
+      else
+      {
+        ppm_log(LOG_NOTICE, "ppm: %s part of RDN is too short to be checked", token);
+      }
       token = strtok(NULL, TOKENS_DELIMITERS);
     }
  
