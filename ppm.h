@@ -102,8 +102,12 @@ typedef struct conf {
 
 void ppm_log(int priority, const char *format, ...);
 int min(char *str1, char *str2);
-static void read_config_file(conf * fileConf, int *numParam, char *ppm_config_file);
-int check_password(char *pPasswd, char **ppErrStr, Entry * pEntry);
+#ifdef PWDCHECKMODULEARG
+  static void read_config_attr(conf * fileConf, int *numParam, char *ppm_config_attr);
+#else
+  static void read_config_file(conf * fileConf, int *numParam, char *ppm_config_file);
+#endif
+int check_password(char *pPasswd, char **ppErrStr, void * pEntry);
 int maxConsPerClass(char *password, char *charClass);
 void storeEntry(char *param, char *value, valueType valType, 
            char *min, char *minForPoint, conf * fileConf, int *numParam);

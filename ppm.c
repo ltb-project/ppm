@@ -4,6 +4,19 @@
  * See LICENSE, README and INSTALL files
  */
 
+
+/*
+  password policy module is called with:
+  int check_password (char *pPasswd, char **ppErrStr, void *pArg);
+
+  old mode: type of pArg is a pointer to Entry (the current LDAP entry)
+
+  new mode: type of pArg is a pointer to struct berval
+  (containing the pwdCheckModuleArg attribute)
+*/
+#define PWDCHECKMODULEARG 1     // new mode
+
+
 #include <stdlib.h>             // for type conversion, such as atoi...
 #include <regex.h>              // for matching allowedParameters / conf file
 #include <string.h>
@@ -16,7 +29,6 @@
 #ifdef CRACKLIB
 #include "crack.h"              // use cracklib to check password
 #endif
-
 
 void
 ppm_log(int priority, const char *format, ...)
@@ -195,9 +207,80 @@ typeParam(char* param)
     return n;
 }
 
-static void
-read_config_file(conf * fileConf, int *numParam, char *ppm_config_file)
-{
+#ifdef PWDCHECKMODULEARG
+  static void
+  read_config_attr(conf * fileConf, int *numParam, char *ppm_config_attr)
+  {
+    int nParam = 0;       // position of found parameter in allowedParameters
+    int sAllowedParameters = sizeof(allowedParameters)/sizeof(params);
+    char arg[260*256];
+    char *token;
+    char *saveptr1;
+    char *saveptr2;
+
+    strcpy_safe(arg, ppm_config_attr, 260*256);
+    ppm_log(LOG_NOTICE, "ppm: Parsing pwdCheckModuleArg attribute");
+    token = strtok_r(arg, "\n", &saveptr1);
+
+    while (token != NULL) {
+        ppm_log(LOG_NOTICE, "ppm: get line: %s",token);
+        char *start = token;
+        char *word, *value;
+        char *min, *minForPoint;;
+
+        while (isspace(*start) && isascii(*start))
+            start++;
+
+        if (!isascii(*start))
+            continue;
+        if (start[0] == '#')
+            continue;
+
+        if ((word = strtok_r(start, " \t", &saveptr2))) {
+            if ((value = strtok_r(NULL, " \t", &saveptr2)) == NULL)
+            {
+                saveptr2 = NULL;
+                continue;
+            }
+            if (strchr(value, '\n') != NULL)
+                strchr(value, '\n')[0] = '\0';
+            min = strtok_r(NULL, " \t", &saveptr2);
+            if (min != NULL)
+                if (strchr(min, '\n') != NULL)
+                    strchr(min, '\n')[0] = '\0';
+            minForPoint = strtok_r(NULL, " \t", &saveptr2);
+            if (minForPoint != NULL)
+                if (strchr(minForPoint, '\n') != NULL)
+                    strchr(minForPoint, '\n')[0] = '\0';
+
+
+            nParam = typeParam(word); // search for param in allowedParameters
+            if (nParam != sAllowedParameters) // param has been found
+            {
+                ppm_log(LOG_NOTICE,
+                   "ppm: Param = %s, value = %s, min = %s, minForPoint= %s",
+                   word, value, min, minForPoint);
+
+                storeEntry(word, value, allowedParameters[nParam].iType,
+                           min, minForPoint, fileConf, numParam);
+            }
+            else
+            {
+                ppm_log(LOG_NOTICE,
+                   "ppm: Parameter '%s' rejected", word);
+            }
+
+        }
+        token = strtok_r(NULL, "\n", &saveptr1);
+    }
+
+  }
+
+#else
+
+  static void
+  read_config_file(conf * fileConf, int *numParam, char *ppm_config_file)
+  {
     FILE *config;
     char line[260] = "";
     int nParam = 0;       // position of found parameter in allowedParameters
@@ -257,7 +340,8 @@ read_config_file(conf * fileConf, int *numParam, char *ppm_config_file)
     }
 
     fclose(config);
-}
+  }
+#endif
 
 static int
 realloc_error_message(char **target, int curlen, int nextlen)
@@ -328,8 +412,23 @@ containsRDN(char* passwd, char* DN)
 
 
 int
-check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
+check_password(char *pPasswd, char **ppErrStr, void * pArg)
 {
+
+    #ifdef PWDCHECKMODULEARG
+      ppm_log(LOG_NOTICE, "ppm: Reading pwdCheckModuleArg attribute");
+      Entry virtualEnt;
+      virtualEnt.e_nname.bv_val = malloc(sizeof(char)*8);
+      strcpy(virtualEnt.e_nname.bv_val,"virtual");
+      virtualEnt.e_nname.bv_len = 7;
+      Entry *pEntry = &virtualEnt;
+      struct berval *pwdCheckModuleArg = pArg;
+      ppm_log(LOG_NOTICE, "ppm: RAW configuration: %s", (*(struct berval*)pwdCheckModuleArg).bv_val);
+    #else
+      ppm_log(LOG_NOTICE, "ppm: Not reading pwdCheckModuleArg attribute");
+      Entry *pEntry = pArg;
+      struct berval *pwdCheckModuleArg = NULL;
+    #endif
 
     ppm_log(LOG_NOTICE, "ppm: entry %s", pEntry->e_nname.bv_val);
 
@@ -352,14 +451,16 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
     int maxConsecutivePerClass;
     int nbInClass[CONF_MAX_SIZE];
     int i,j;
-    char ppm_config_file[FILENAME_MAX_LEN];
 
-    /* Determine config file */
-    strcpy_safe(ppm_config_file, getenv("PPM_CONFIG_FILE"), FILENAME_MAX_LEN);
-    if (ppm_config_file[0] == '\0') {
-      strcpy_safe(ppm_config_file, CONFIG_FILE, FILENAME_MAX_LEN);
-    }
-    ppm_log(LOG_NOTICE, "ppm: reading config file from %s", ppm_config_file);
+    #ifndef PWDCHECKMODULEARG
+      /* Determine config file */
+      char ppm_config_file[FILENAME_MAX_LEN];
+      strcpy_safe(ppm_config_file, getenv("PPM_CONFIG_FILE"), FILENAME_MAX_LEN);
+      if (ppm_config_file[0] == '\0') {
+        strcpy_safe(ppm_config_file, CONFIG_FILE, FILENAME_MAX_LEN);
+      }
+      ppm_log(LOG_NOTICE, "ppm: reading config file from %s", ppm_config_file);
+    #endif
 
     for (i = 0; i < CONF_MAX_SIZE; i++)
         nbInClass[i] = 0;
@@ -402,8 +503,12 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
     };
     numParam = 11;
 
-    /* Read config file */
-    read_config_file(fileConf, &numParam, ppm_config_file);
+    /* Read configuration */
+    #ifdef PWDCHECKMODULEARG
+      read_config_attr(fileConf, &numParam, (*(struct berval*)pwdCheckModuleArg).bv_val);
+    #else
+      read_config_file(fileConf, &numParam, ppm_config_file);
+    #endif
 
     maxLength = getValue(fileConf, numParam, "maxLength")->iVal;
     minQuality = getValue(fileConf, numParam, "minQuality")->iVal;
@@ -427,9 +532,9 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
       // constraint is not satisfied... goto fail
       mem_len = realloc_error_message(&szErrStr, mem_len,
                                       strlen(PASSWORD_TOO_LONG_SZ) +
-                                      strlen(pEntry->e_name.bv_val) + 
+                                      strlen(pEntry->e_nname.bv_val) + 
                                       2 * sizeof(maxLength));
-      sprintf(szErrStr, PASSWORD_TOO_LONG_SZ, pEntry->e_name.bv_val,
+      sprintf(szErrStr, PASSWORD_TOO_LONG_SZ, pEntry->e_nname.bv_val,
               (int)strlen(pPasswd), maxLength);
       goto fail;
       
@@ -466,8 +571,8 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
     if (nQuality < minQuality) {
         mem_len = realloc_error_message(&szErrStr, mem_len,
                                         strlen(PASSWORD_QUALITY_SZ) +
-                                        strlen(pEntry->e_name.bv_val) + 4);
-        sprintf(szErrStr, PASSWORD_QUALITY_SZ, pEntry->e_name.bv_val,
+                                        strlen(pEntry->e_nname.bv_val) + 4);
+        sprintf(szErrStr, PASSWORD_QUALITY_SZ, pEntry->e_nname.bv_val,
                 nQuality, minQuality);
         goto fail;
     }
@@ -479,9 +584,9 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
                 // constraint is not satisfied... goto fail
                 mem_len = realloc_error_message(&szErrStr, mem_len,
                                                 strlen(PASSWORD_CRITERIA) +
-                                                strlen(pEntry->e_name.bv_val) + 
+                                                strlen(pEntry->e_nname.bv_val) + 
                                                 2 + PARAM_MAX_LEN);
-                sprintf(szErrStr, PASSWORD_CRITERIA, pEntry->e_name.bv_val,
+                sprintf(szErrStr, PASSWORD_CRITERIA, pEntry->e_nname.bv_val,
                         fileConf[i].min, fileConf[i].param);
                 goto fail;
             }
@@ -492,9 +597,9 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
     if (nForbiddenChars > 0) {  // at least 1 forbidden char... goto fail
         mem_len = realloc_error_message(&szErrStr, mem_len,
                                         strlen(PASSWORD_FORBIDDENCHARS) +
-                                        strlen(pEntry->e_name.bv_val) + 2 +
+                                        strlen(pEntry->e_nname.bv_val) + 2 +
                                         VALUE_MAX_LEN);
-        sprintf(szErrStr, PASSWORD_FORBIDDENCHARS, pEntry->e_name.bv_val,
+        sprintf(szErrStr, PASSWORD_FORBIDDENCHARS, pEntry->e_nname.bv_val,
                 nForbiddenChars, forbiddenChars);
         goto fail;
     }
@@ -510,9 +615,9 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
                        fileConf[i].param);
                 mem_len = realloc_error_message(&szErrStr, mem_len,
                                         strlen(PASSWORD_MAXCONSECUTIVEPERCLASS) +
-                                        strlen(pEntry->e_name.bv_val) + 2 +
+                                        strlen(pEntry->e_nname.bv_val) + 2 +
                                         PARAM_MAX_LEN);
-                sprintf(szErrStr, PASSWORD_MAXCONSECUTIVEPERCLASS, pEntry->e_name.bv_val,
+                sprintf(szErrStr, PASSWORD_MAXCONSECUTIVEPERCLASS, pEntry->e_nname.bv_val,
                         maxConsecutivePerClass, fileConf[i].param);
                 goto fail;
             }
@@ -541,11 +646,11 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
         res = (char *) FascistCheck (pPasswd, cracklibDict);
         if ( res != NULL ) {
                 ppm_log(LOG_NOTICE, "ppm: cracklib does not validate password for entry %s",
-                       pEntry->e_name.bv_val);
+                       pEntry->e_nname.bv_val);
                 mem_len = realloc_error_message(&szErrStr, mem_len,
                                         strlen(PASSWORD_CRACKLIB) +
-                                        strlen(pEntry->e_name.bv_val));
-                sprintf(szErrStr, PASSWORD_CRACKLIB, pEntry->e_name.bv_val);
+                                        strlen(pEntry->e_nname.bv_val));
+                sprintf(szErrStr, PASSWORD_CRACKLIB, pEntry->e_nname.bv_val);
                 goto fail;
         
         }
@@ -554,13 +659,13 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
 #endif
 
     // Password checking done, now looking for checkRDN criteria
-    if (checkRDN == 1 && containsRDN(pPasswd, pEntry->e_name.bv_val))
+    if (checkRDN == 1 && containsRDN(pPasswd, pEntry->e_nname.bv_val))
     // RDN check enabled and a token from RDN is found in password: goto fail
     {
         mem_len = realloc_error_message(&szErrStr, mem_len,
                                         strlen(RDN_TOKEN_FOUND) +
-                                        strlen(pEntry->e_name.bv_val));
-        sprintf(szErrStr, RDN_TOKEN_FOUND, pEntry->e_name.bv_val);
+                                        strlen(pEntry->e_nname.bv_val));
+        sprintf(szErrStr, RDN_TOKEN_FOUND, pEntry->e_nname.bv_val);
 
         goto fail;
     }
