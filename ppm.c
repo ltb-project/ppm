@@ -232,14 +232,22 @@ typeParam(char* param)
             start++;
 
         if (!isascii(*start))
+        {
+            token = strtok_r(NULL, "\n", &saveptr1);
             continue;
+        }
         if (start[0] == '#')
+        {
+            token = strtok_r(NULL, "\n", &saveptr1);
             continue;
+        }
 
         if ((word = strtok_r(start, " \t", &saveptr2))) {
             if ((value = strtok_r(NULL, " \t", &saveptr2)) == NULL)
             {
                 saveptr2 = NULL;
+                ppm_log(LOG_NOTICE, "ppm: No value, goto next parameter");
+                token = strtok_r(NULL, "\n", &saveptr1);
                 continue;
             }
             if (strchr(value, '\n') != NULL)
