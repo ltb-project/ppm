@@ -68,7 +68,7 @@ launch_test()
 
   [[ $EXPECT == "PASS" ]] && EXP="0" || EXP="1"
 
-  PPM_CONFIG_FILE="${CONF}" LD_LIBRARY_PATH="${LIB_PATH}" ./ppm_test "${USER}" "${PASS}"
+  LD_LIBRARY_PATH="${LIB_PATH}" ./ppm_test "${USER}" "${PASS}" "${CONF}"
   RES="$?"
 
   if [ "$RES" -eq "$EXP" ] ; then

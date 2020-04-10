@@ -7,15 +7,13 @@
 
 /*
   password policy module is called with:
-  int check_password (char *pPasswd, char **ppErrStr, void *pArg);
+  int check_password (char *pPasswd, char **ppErrStr, Entry *e, void *pArg)
 
-  old mode: type of pArg is a pointer to Entry (the current LDAP entry)
-
-  new mode: type of pArg is a pointer to struct berval
-  (containing the pwdCheckModuleArg attribute)
+  *pPasswd: new password
+  **ppErrStr: pointer to the string containing the error message
+  *e: pointer to the current user entry
+  *pArg: pointer to a struct berval holding the value of pwdCheckModuleArg attr
 */
-#define PWDCHECKMODULEARG 1     // new mode
-
 
 #include <stdlib.h>             // for type conversion, such as atoi...
 #include <regex.h>              // for matching allowedParameters / conf file
@@ -207,7 +205,11 @@ typeParam(char* param)
     return n;
 }
 
-#ifdef PWDCHECKMODULEARG
+#ifndef PPM_READ_FILE
+
+  /*
+   * read configuration into pwdCheckModuleArg attribute
+   * */
   static void
   read_config_attr(conf * fileConf, int *numParam, char *ppm_config_attr)
   {
@@ -217,20 +219,20 @@ typeParam(char* param)
     char *token;
     char *saveptr1;
     char *saveptr2;
-
+  
     strcpy_safe(arg, ppm_config_attr, 260*256);
     ppm_log(LOG_NOTICE, "ppm: Parsing pwdCheckModuleArg attribute");
     token = strtok_r(arg, "\n", &saveptr1);
-
+  
     while (token != NULL) {
         ppm_log(LOG_NOTICE, "ppm: get line: %s",token);
         char *start = token;
         char *word, *value;
         char *min, *minForPoint;;
-
+  
         while (isspace(*start) && isascii(*start))
             start++;
-
+  
         if (!isascii(*start))
         {
             token = strtok_r(NULL, "\n", &saveptr1);
@@ -241,7 +243,7 @@ typeParam(char* param)
             token = strtok_r(NULL, "\n", &saveptr1);
             continue;
         }
-
+  
         if ((word = strtok_r(start, " \t", &saveptr2))) {
             if ((value = strtok_r(NULL, " \t", &saveptr2)) == NULL)
             {
@@ -260,15 +262,15 @@ typeParam(char* param)
             if (minForPoint != NULL)
                 if (strchr(minForPoint, '\n') != NULL)
                     strchr(minForPoint, '\n')[0] = '\0';
-
-
+  
+  
             nParam = typeParam(word); // search for param in allowedParameters
             if (nParam != sAllowedParameters) // param has been found
             {
                 ppm_log(LOG_NOTICE,
                    "ppm: Param = %s, value = %s, min = %s, minForPoint= %s",
                    word, value, min, minForPoint);
-
+  
                 storeEntry(word, value, allowedParameters[nParam].iType,
                            min, minForPoint, fileConf, numParam);
             }
@@ -277,15 +279,20 @@ typeParam(char* param)
                 ppm_log(LOG_NOTICE,
                    "ppm: Parameter '%s' rejected", word);
             }
-
+  
         }
         token = strtok_r(NULL, "\n", &saveptr1);
     }
-
+  
   }
 
-#else
+#endif
 
+#ifdef PPM_READ_FILE
+
+  /*
+   * read configuration file (DEPRECATED)
+   * */
   static void
   read_config_file(conf * fileConf, int *numParam, char *ppm_config_file)
   {
@@ -293,26 +300,26 @@ typeParam(char* param)
     char line[260] = "";
     int nParam = 0;       // position of found parameter in allowedParameters
     int sAllowedParameters = sizeof(allowedParameters)/sizeof(params);
-
+  
     ppm_log(LOG_NOTICE, "ppm: Opening file %s", ppm_config_file);
     if ((config = fopen(ppm_config_file, "r")) == NULL) {
         ppm_log(LOG_ERR, "ppm: Opening file %s failed", ppm_config_file);
         exit(EXIT_FAILURE);
     }
-
+  
     while (fgets(line, 256, config) != NULL) {
         char *start = line;
         char *word, *value;
         char *min, *minForPoint;;
-
+  
         while (isspace(*start) && isascii(*start))
             start++;
-
+  
         if (!isascii(*start))
             continue;
         if (start[0] == '#')
             continue;
-
+  
         if ((word = strtok(start, " \t"))) {
             if ((value = strtok(NULL, " \t")) == NULL)
                 continue;
@@ -326,15 +333,15 @@ typeParam(char* param)
             if (minForPoint != NULL)
                 if (strchr(minForPoint, '\n') != NULL)
                     strchr(minForPoint, '\n')[0] = '\0';
-
-
+  
+  
             nParam = typeParam(word); // search for param in allowedParameters
             if (nParam != sAllowedParameters) // param has been found
             {
                 ppm_log(LOG_NOTICE,
                    "ppm: Param = %s, value = %s, min = %s, minForPoint= %s",
                    word, value, min, minForPoint);
-
+  
                 storeEntry(word, value, allowedParameters[nParam].iType,
                            min, minForPoint, fileConf, numParam);
             }
@@ -343,12 +350,13 @@ typeParam(char* param)
                 ppm_log(LOG_NOTICE,
                    "ppm: Parameter '%s' rejected", word);
             }
-
+  
         }
     }
-
+  
     fclose(config);
   }
+
 #endif
 
 static int
@@ -420,25 +428,22 @@ containsRDN(char* passwd, char* DN)
 
 
 int
-check_password(char *pPasswd, char **ppErrStr, void * pArg)
+check_password(char *pPasswd, char **ppErrStr, Entry *e, void *pArg)
 {
 
-    #ifdef PWDCHECKMODULEARG
-      ppm_log(LOG_NOTICE, "ppm: Reading pwdCheckModuleArg attribute");
-      Entry virtualEnt;
-      virtualEnt.e_nname.bv_val = malloc(sizeof(char)*8);
-      strcpy(virtualEnt.e_nname.bv_val,"virtual");
-      virtualEnt.e_nname.bv_len = 7;
-      Entry *pEntry = &virtualEnt;
-      struct berval *pwdCheckModuleArg = pArg;
-      ppm_log(LOG_NOTICE, "ppm: RAW configuration: %s", (*(struct berval*)pwdCheckModuleArg).bv_val);
-    #else
-      ppm_log(LOG_NOTICE, "ppm: Not reading pwdCheckModuleArg attribute");
-      Entry *pEntry = pArg;
-      struct berval *pwdCheckModuleArg = NULL;
-    #endif
-
+    Entry *pEntry = e;
     ppm_log(LOG_NOTICE, "ppm: entry %s", pEntry->e_nname.bv_val);
+
+    struct berval *pwdCheckModuleArg = pArg;
+    /* Determine if config file is to be read (DEPRECATED) */
+    #ifdef PPM_READ_FILE
+      ppm_log(LOG_NOTICE, "ppm: Not reading pwdCheckModuleArg attribute");
+      ppm_log(LOG_NOTICE, "ppm: instead, read configuration file (deprecated)");
+    #else
+      ppm_log(LOG_NOTICE, "ppm: Reading pwdCheckModuleArg attribute");
+      ppm_log(LOG_NOTICE, "ppm: RAW configuration: %s",
+                          (*(struct berval*)pwdCheckModuleArg).bv_val);
+    #endif
 
     char *szErrStr = (char *) ber_memalloc(MEM_INIT_SZ);
     int mem_len = MEM_INIT_SZ;
@@ -460,8 +465,8 @@ check_password(char *pPasswd, char **ppErrStr, void * pArg)
     int nbInClass[CONF_MAX_SIZE];
     int i,j;
 
-    #ifndef PWDCHECKMODULEARG
-      /* Determine config file */
+    /* Determine config file (DEPRECATED) */
+    #ifdef PPM_READ_FILE
       char ppm_config_file[FILENAME_MAX_LEN];
       strcpy_safe(ppm_config_file, getenv("PPM_CONFIG_FILE"), FILENAME_MAX_LEN);
       if (ppm_config_file[0] == '\0') {
@@ -511,11 +516,12 @@ check_password(char *pPasswd, char **ppErrStr, void * pArg)
     };
     numParam = 11;
 
-    /* Read configuration */
-    #ifdef PWDCHECKMODULEARG
-      read_config_attr(fileConf, &numParam, (*(struct berval*)pwdCheckModuleArg).bv_val);
-    #else
+    #ifdef PPM_READ_FILE
+      /* Read configuration file (DEPRECATED) */
       read_config_file(fileConf, &numParam, ppm_config_file);
+    #else
+      /* Read configuration attribute (pwdCheckModuleArg) */
+      read_config_attr(fileConf, &numParam, (*(struct berval*)pwdCheckModuleArg).bv_val);
     #endif
 
     maxLength = getValue(fileConf, numParam, "maxLength")->iVal;
