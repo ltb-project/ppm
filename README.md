@@ -26,7 +26,39 @@ See INSTALL file
 USAGE
 -----
 
-See INSTALL file
+Create a password policy entry and indicate the fresh compiled
+library ppm.so:
+
+dn: cn=default,ou=policies,dc=my-domain,dc=com
+objectClass: pwdPolicy
+objectClass: pwdPolicyChecker
+objectClass: person
+objectClass: top
+cn: default
+sn: default
+pwdAttribute: userPassword
+pwdCheckQuality: 2
+...
+pwdCheckModule: /path/to/new/ppm.so
+pwdCheckModuleArg: [see configuration section]
+
+
+See slapo-ppolicy for more information, but to sum up:
+- enable ppolicy overlay in your database.
+This example show the activation for a slapd.conf file
+(see slapd-config and slapo-ppolicy for more information for
+ cn=config configuration)
+
+```
+overlay ppolicy
+ppolicy_default "cn=default,ou=policies,dc=my-domain,dc=com"
+#ppolicy_use_lockout   # for having more infos about the lockout
+```
+
+- define a default password policy in OpenLDAP configuration or
+use pwdPolicySubentry attribute to point to the given policy.
+
+
 
 
 Password checks
@@ -57,20 +89,30 @@ rejected.
 - if a password does not pass cracklib check, it can be rejected.
 
 
-Configuration file
-------------------
+Configuration
+-------------
 
-The configuration file (/etc/openldap/ppm.conf by default) contains
-parameters for the module. The PPM_CONFIG_FILE environment variable,
-if defined, overloads the configuration file path.
-If the file is not found, parameters are given their default value.
+Since OpenLDAP 2.5 verspion, ppm configuration is held in a binary
+attribute of the password policy: pwdCheckModuleArg
+The configuration file (/etc/openldap/ppm.conf by default) is to be
+considered as an example configuration, to import in the pwdCheckModuleArg
+attribute. It is also used for testing passwords with the test program
+provided.
+If for some reasons, any parameter is not found, it will be given its
+default value.
 
-The syntax of the file is :
+Note: you can still compile ppm to use the configuration file, by enabling
+PPM_READ_FILE in ppm.h (but this is deprecated now). If you decide to do so,
+you can use the PPM_CONFIG_FILE environment variable for overloading the
+configuration file path.
+
+The syntax of a configuration line is:
 parameter value [min] [minForPoint]
 
-with spaces being delimiters. Parameter names ARE case sensitive
+with spaces being delimiters and Line Feed (LF) ending the line.
+Parameter names ARE case sensitive.
 
-The default configuration file is the following:
+The default configuration is the following:
 
 ```
 # minQuality parameter
@@ -80,13 +122,6 @@ The default configuration file is the following:
 # One point is granted for each class for which MIN_FOR_POINT criteria is fulfilled.
 # defines the minimum point numbers for the password to be accepted.
 minQuality 3
-
-# maxLength parameter
-# Format:
-# maxLength [NUMBER]
-# Description:
-# The password must not be more than [NUMBER] long. 0 means no limit is set.
-maxLength 0
 
 # checkRDN parameter
 # Format:
@@ -147,7 +182,6 @@ With this policy:
 ```
 minQuality 4
 forbiddenChars .?,
-maxLength 0
 checkRDN 1
 class-upperCase ABCDEFGHIJKLMNOPQRSTUVWXYZ 0 5
 class-lowerCase abcdefghijklmnopqrstuvwxyz 0 12
@@ -164,10 +198,10 @@ is working, because,
 - it has 4 character classes validated : upper, lower, special, and myClass
 - it has no character among .?,
 - it has at least one character among : or )
-- there is no size constraint (maxLength of 0)
 
 but it won't work for the user uid=John Cowlevel,ou=people,cn=example,cn=com,
 because the token "Cowlevel" from his RDN exists in the password (case insensitive).
+
 
 Logs
 ----
@@ -211,13 +245,9 @@ It is possible to test one particular password using directly the test program:
 
 ```
 cd /usr/local/openldap/lib64
-PPM_CONFIG_FILE=/usr/local/openldap/etc/openldap/ppm.conf LD_LIBRARY_PATH=. ./ppm_test "uid=test,ou=users,dc=my-domain,dc=com" "my_password" && echo OK
+LD_LIBRARY_PATH=. ./ppm_test "uid=test,ou=users,dc=my-domain,dc=com" "my_password" "/usr/local/openldap/etc/openldap/ppm.conf" && echo OK
 ```
 
-
-TODO
-----
-* integrate configuration file into cn=config
 
 
 HISTORY

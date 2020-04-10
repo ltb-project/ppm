@@ -13,7 +13,7 @@ directory.
 
 Adapt the Makefile command to indicate:
 OLDAP_SOURCES : should point to OpenLDAP source directory
-CONFIG: where the ppm.conf configuration file will finally stand
+CONFIG: where the ppm.conf example configuration file will finally stand
 LIBDIR: where the library will be installed
 DEBUG: If defined, ppm logs its actions with syslog
 
@@ -23,33 +23,18 @@ LDAP_LIBS : OpenLDAP built libraries directory
 
 then type:
 
+```
 make clean
 make CONFIG=/etc/openldap/ppm.conf OLDAP_SOURCES=../../..
 make install CONFIG=/etc/openldap/ppm.conf LIBDIR=/usr/lib/openldap
+```
 
 
-USAGE
-=====
+For LTB build, use rather:
 
-Create a password policy entry and indicate the fresh compiled
-library ppm.so:
-
-dn: cn=default,ou=policies,dc=my-domain,dc=com
-objectClass: pwdPolicy
-objectClass: pwdPolicyChecker
-objectClass: person
-objectClass: top
-cn: default
-sn: default
-pwdAttribute: userPassword
-pwdCheckQuality: 2
-...
-pwdCheckModule: /path/to/new/ppm.so
-
-
-See slapo-ppolicy for more information, but to sum up:
-- add ppolicy schema to your directory
-- enable ppolicy overlay
-- define a default ppolicy in OpenLDAP configuration or use pwdPolicySubentry
-attribute to point to the previous policy.
+```
+make clean
+make "CONFIG=/usr/local/openldap/etc/openldap/ppm.conf" "OLDAP_SOURCES=.."
+make install CONFIG=/usr/local/openldap/etc/openldap/ppm.conf LIBDIR=/usr/local/openldap/lib64
+```
 
