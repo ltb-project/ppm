@@ -14,7 +14,6 @@ NC='\033[0m'
 RESULT=0
 
 PPM_CONF_1='minQuality 3
-maxLength 0
 checkRDN 0
 forbiddenChars 
 maxConsecutivePerClass 0
@@ -26,7 +25,6 @@ class-digit 0123456789 0 1
 class-special <>,?;.:/!§ù%*µ^¨$£²&é~"#'\''{([-|è`_\ç^à@)]°=}+ 0 1'
 
 PPM_CONF_2='minQuality 3
-maxLength 20
 checkRDN 0
 forbiddenChars à
 maxConsecutivePerClass 5
@@ -38,7 +36,6 @@ class-digit 0123456789 2 4
 class-special <>,?;.:/!§ù%*µ^¨$£²&é~"#'\''{([-|è`_\ç^à@)]°=}+ 0 4'
 
 PPM_CONF_3='minQuality 3
-maxLength 0
 checkRDN 1
 forbiddenChars 
 maxConsecutivePerClass 0
@@ -91,8 +88,6 @@ launch_test "ppm1.conf" "uid=test,ou=users,dc=my-domain,dc=com" "azeRTY." "PASS"
 
 
 launch_test "ppm2.conf" "uid=test,ou=users,dc=my-domain,dc=com" "AAaaa01AAaaa01AAaaa0" "PASS"
-# too long
-launch_test "ppm2.conf" "uid=test,ou=users,dc=my-domain,dc=com" "AAaaa01AAaaa01AAaaa01" "FAIL"
 # forbidden char
 launch_test "ppm2.conf" "uid=test,ou=users,dc=my-domain,dc=com" "AAaaa01AAaaa01AAaaaà" "FAIL"
 # too much consecutive for upper

@@ -449,7 +449,6 @@ check_password(char *pPasswd, char **ppErrStr, Entry *e, void *pArg)
     int mem_len = MEM_INIT_SZ;
     int numParam = 0; // Number of params in current configuration
 
-    int maxLength;
     int useCracklib;
     char cracklibDict[VALUE_MAX_LEN];
     char cracklibDictFiles[3][(VALUE_MAX_LEN+5)];
@@ -480,9 +479,6 @@ check_password(char *pPasswd, char **ppErrStr, Entry *e, void *pArg)
 
     /* Set default values */
     conf fileConf[CONF_MAX_SIZE] = {
-        {"maxLength", typeInt, {.iVal = 0}, 0, 0
-         }
-        ,
         {"minQuality", typeInt, {.iVal = DEFAULT_QUALITY}, 0, 0
          }
         ,
@@ -514,7 +510,7 @@ check_password(char *pPasswd, char **ppErrStr, Entry *e, void *pArg)
          {.sVal = "<>,?;.:/!§ù%*µ^¨$£²&é~\"#'{([-|è`_\\ç^à@)]°=}+"}, 0, 1
          }
     };
-    numParam = 11;
+    numParam = 10;
 
     #ifdef PPM_READ_FILE
       /* Read configuration file (DEPRECATED) */
@@ -524,7 +520,6 @@ check_password(char *pPasswd, char **ppErrStr, Entry *e, void *pArg)
       read_config_attr(fileConf, &numParam, (*(struct berval*)pwdCheckModuleArg).bv_val);
     #endif
 
-    maxLength = getValue(fileConf, numParam, "maxLength")->iVal;
     minQuality = getValue(fileConf, numParam, "minQuality")->iVal;
     checkRDN = getValue(fileConf, numParam, "checkRDN")->iVal;
     strcpy_safe(forbiddenChars,
@@ -541,18 +536,6 @@ check_password(char *pPasswd, char **ppErrStr, Entry *e, void *pArg)
      * point granted if the password contains at least minForPoint characters for each class
      * It must contains at least min chars of each class
      * It must not contain any char in forbiddenChar */
-
-    if(maxLength != 0 && strlen(pPasswd) > maxLength) {
-      // constraint is not satisfied... goto fail
-      mem_len = realloc_error_message(&szErrStr, mem_len,
-                                      strlen(PASSWORD_TOO_LONG_SZ) +
-                                      strlen(pEntry->e_nname.bv_val) + 
-                                      2 * sizeof(maxLength));
-      sprintf(szErrStr, PASSWORD_TOO_LONG_SZ, pEntry->e_nname.bv_val,
-              (int)strlen(pPasswd), maxLength);
-      goto fail;
-      
-    }
 
     for (i = 0; i < strlen(pPasswd); i++) {
 

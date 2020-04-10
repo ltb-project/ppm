@@ -45,8 +45,6 @@
 
 #define DEBUG_MSG_MAX_LEN                 256
 
-#define PASSWORD_TOO_LONG_SZ \
-  "Password for dn=\"%s\" is too long (%d / %d)"
 #define PASSWORD_QUALITY_SZ \
   "Password for dn=\"%s\" does not pass required number of strength checks (%d of %d)"
 #define PASSWORD_CRITERIA \
@@ -83,8 +81,7 @@ typedef struct params {
 
 // allowed parameters loaded into configuration structure
 // it also contains the type of the corresponding value
-params allowedParameters[8] = {
-    {"^maxLength", typeInt},
+params allowedParameters[7] = {
     {"^minQuality", typeInt},
     {"^checkRDN", typeInt},
     {"^forbiddenChars", typeStr},
