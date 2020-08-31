@@ -5,11 +5,11 @@
 CC=gcc
 
 # Path of OpenLDAP sources
-OLDAP_SOURCES=../../..
+OLDAP_SOURCES?=../../..
 # Where the ppm configuration file should be installed
-CONFIG=/etc/openldap/ppm.conf
+CONFIG?=/etc/openldap/ppm.conf
 # Path of OpenLDAP installed libs, where the ppm library should be installed
-LIBDIR=/usr/lib/openldap
+LIBDIR?=/usr/lib/openldap
 
 OPT=-g -O2 -Wall -fpic 						\
 	-DCONFIG_FILE="\"$(CONFIG)\""				\
@@ -41,7 +41,7 @@ TESTS=./unit_tests.sh
 
 all: 	ppm ppm_test
 
-ppm_test: 
+ppm_test: ppm 
 	$(CC) -g $(LDAP_INC) $(LDAP_LIBS) -Wl,-rpath=. -o ppm_test ppm_test.c ppm.so $(LIBS)
 
 ppm.o:

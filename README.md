@@ -96,6 +96,13 @@ maxLength 0
 # Tokens are separated by the following delimiters : space tabulation _ - , ; £
 checkRDN 0
 
+# checkUserInpass parameter
+# Format:
+# checkUserInpass [0 | 1]
+# Description:
+# If set to 1, password must not contain the user-name.
+checkUserInpass 1
+
 # forbiddenChars parameter
 # Format:
 # forbiddenChars [CHARACTERS_FORBIDDEN]

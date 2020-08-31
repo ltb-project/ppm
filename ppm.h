@@ -57,6 +57,8 @@
   "Password for dn=\"%s\" is too weak"
 #define BAD_PASSWORD_SZ \
   "Bad password for dn=\"%s\" because %s"
+#define USER_IN_PASSWORD \
+  "Password for dn=\"%s\" has username in it"
 
 
 

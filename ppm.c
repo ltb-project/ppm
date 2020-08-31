@@ -326,6 +326,72 @@ containsRDN(char* passwd, char* DN)
     return 0;
 }
 
+char* extractVal(char *str, char *keyStr)
+{
+    // extract uid from 
+    // uid=newuser,ou=people,dc=domainname,dc=com
+    char* uidStr = NULL;
+    char* token; 
+    char* rest = str; 
+    while ((token = strtok_r(rest, ",", &rest))) {
+        char* subtoken; 
+        char* subrest = token; 
+        char *key = strtok_r(subrest, "=", &subrest);
+        char *val = strtok_r(subrest, "=", &subrest);
+        if (strcmp(key,keyStr) == 0){
+            uidStr = val;
+            break;
+        }
+    }
+    return uidStr;
+}
+
+
+// Find if the username is in the password
+int 
+nameInPass(char *pass, char *fqdn) 
+{
+    // fqdn => uid=user,ou=people,dc=domainname,dc=com
+    // pass => user@123
+
+    // return false = 0, true = 1 
+    // Do a case-insensitive search
+
+    char *fqdnStr = strdup(fqdn);
+    char* name = extractVal(fqdnStr, "uid");
+    if (name == (char*)NULL) {
+        ber_memfree(fqdnStr);
+        return 0;
+    }
+
+    int lpass = strlen(pass);
+    int lname = strlen(name);
+    ppm_log(LOG_NOTICE, "ppm: nameInPass %s", name);
+
+    int ret;
+    if (lname > lpass) {
+        ber_memfree(fqdnStr);
+        return 0;
+    }
+
+    // check if the password is long enough
+    for (int i = 0; i <= (lpass - lname); i++) {
+        // if the first char matches then check 
+        // if the rest of them matches
+        if (tolower(pass[i]) == tolower(name[0])) {
+            for (int j = 1; j < lname; j++) {
+                if (tolower(pass[i + j]) != tolower(name[j])) {
+                    ber_memfree(fqdnStr);
+                    return 0;
+                }
+            }
+            ber_memfree(fqdnStr);
+            return 1;
+        }
+    }
+    ber_memfree(fqdnStr);
+    return 0;
+}
 
 int
 check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
@@ -346,6 +412,7 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
     char* res;
     int minQuality;
     int checkRDN;
+    int checkUserInpass;
     char forbiddenChars[VALUE_MAX_LEN];
     int nForbiddenChars = 0;
     int nQuality = 0;
@@ -375,6 +442,9 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
         {"checkRDN", typeInt, {.iVal = 0}, 0, 0
          }
         ,
+        {"checkUserInpass", typeInt, {.iVal = 1}, 0, 0
+         }
+        ,
         {"forbiddenChars", typeStr, {.sVal = ""}, 0, 0
          }
         ,
@@ -400,7 +470,7 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
          {.sVal = "<>,?;.:/!§ù%*µ^¨$£²&é~\"#'{([-|è`_\\ç^à@)]°=}+"}, 0, 1
          }
     };
-    numParam = 11;
+    numParam = 12;
 
     /* Read config file */
     read_config_file(fileConf, &numParam, ppm_config_file);
@@ -408,6 +478,8 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
     maxLength = getValue(fileConf, numParam, "maxLength")->iVal;
     minQuality = getValue(fileConf, numParam, "minQuality")->iVal;
     checkRDN = getValue(fileConf, numParam, "checkRDN")->iVal;
+    checkUserInpass = getValue(fileConf, numParam, "checkUserInpass")->iVal;
+
     strcpy_safe(forbiddenChars,
                 getValue(fileConf, numParam, "forbiddenChars")->sVal,
                 VALUE_MAX_LEN);
@@ -564,6 +636,17 @@ check_password(char *pPasswd, char **ppErrStr, Entry * pEntry)
 
         goto fail;
     }
+
+    // Username in password is not allowed
+    if (checkUserInpass == 1 && nameInPass(pPasswd, pEntry->e_name.bv_val))
+    {
+        mem_len = realloc_error_message(&szErrStr, mem_len,
+                                        strlen(USER_IN_PASSWORD) +
+                                        strlen(pEntry->e_name.bv_val));
+        sprintf(szErrStr, USER_IN_PASSWORD, pEntry->e_name.bv_val);
+
+        goto fail;
+    }    
 
     *ppErrStr = strdup("");
     ber_memfree(szErrStr);
