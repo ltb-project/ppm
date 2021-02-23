@@ -92,7 +92,7 @@ rejected.
 Configuration
 -------------
 
-Since OpenLDAP 2.5 verspion, ppm configuration is held in a binary
+Since OpenLDAP 2.5 version, ppm configuration is held in a binary
 attribute of the password policy: pwdCheckModuleArg
 The configuration file (/etc/openldap/ppm.conf by default) is to be
 considered as an example configuration, to import in the pwdCheckModuleArg
