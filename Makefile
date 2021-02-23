@@ -23,13 +23,13 @@ LDAP_INC=-I$(OLDAP_SOURCES)/include \
 # Where to find the OpenLDAP libraries.
 
 LDAP_LIBS=-L$(OLDAP_SOURCES)/libraries/liblber/.libs \
-	  -L$(OLDAP_SOURCES)/libraries/libldap_r/.libs
+	  -L$(OLDAP_SOURCES)/libraries/libldap/.libs
 
 CRACK_INC=-DCRACKLIB
 
 INCS=$(LDAP_INC) $(CRACK_INC)
 
-LDAP_LIB=-lldap_r -llber
+LDAP_LIB=-lldap -llber
 
 CRACK_LIB=-lcrack
 

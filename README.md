@@ -1,7 +1,7 @@
 
 ppm.c - OpenLDAP password policy module
 
-version 1.7
+version 2.0
 
 ppm.c is an OpenLDAP module for checking password quality when they are modified.
 Passwords are checked against the presence or absence of certain character classes.
@@ -252,6 +252,18 @@ LD_LIBRARY_PATH=. ./ppm_test "uid=test,ou=users,dc=my-domain,dc=com" "my_passwor
 
 HISTORY
 -------
+
+* 2021-02-23 David Coutadeur <david.coutadeur@gmail.com>
+  remove maxLength attribute (#21)
+  adapt the readme and documentation of ppm (#22)
+  prepare ppolicy10 in OpenLDAP 2.5 (#20, #23 and #24)
+  add pwdCheckModuleArg feature
+  Version 2.0
+* 2019-08-20 David Coutadeur <david.coutadeur@gmail.com>
+  adding debug symbols for ppm_test,
+  improve tests with the possibility to add username,
+  fix openldap crash when checkRDN=1 and username contains too short parts
+  Version 1.8
 * 2018-03-30 David Coutadeur <david.coutadeur@gmail.com>
   various minor improvements provided by Tim Bishop (tdb) (compilation, test program,
   imprvts in Makefile: new OLDAP_SOURCES variable pointing to OLDAP instal. directory
