@@ -5,7 +5,10 @@
 
 
 CONFIG_FILE="ppm.conf"
-LIB_PATH="."
+
+OLDAP_SOURCES="../../.."
+CURRENT_DIR=$( dirname $0 )
+LIB_PATH="${LD_LIBRARY_PATH}:${CURRENT_DIR}:${OLDAP_SOURCES}/libraries/liblber/.libs:${OLDAP_SOURCES}/libraries/libldap/.libs"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
