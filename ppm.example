@@ -1,3 +1,28 @@
+# Example of ppm configuration
+
+# Such configuration must be stored into pwdCheckModuleArg attribute
+# of a password policy entry
+# See slapo-ppolicy for more details
+# Here is an example of such password policy:
+#   dn: cn=default,ou=policies,dc=my-domain,dc=com
+#   objectClass: pwdPolicy
+#   objectClass: pwdPolicyChecker
+#   objectClass: person
+#   objectClass: top
+#   cn: default
+#   sn: default
+#   pwdAttribute: userPassword
+#   pwdCheckQuality: 2
+#   ...
+#   pwdCheckModule: /path/to/new/ppm.so
+#   pwdCheckModuleArg: [see parameters below]
+# Different parameters are separated by a linefeed (\n)
+# Parameters starting with a # are ignored
+
+
+
+
+# Parameters
 
 # minQuality parameter
 # Format:

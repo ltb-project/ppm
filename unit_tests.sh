@@ -4,7 +4,7 @@
 # 
 
 
-CONFIG_FILE="ppm.conf"
+CONFIG_FILE="ppm.example"
 
 OLDAP_SOURCES="../../.."
 CURRENT_DIR=$( dirname $0 )

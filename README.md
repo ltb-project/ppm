@@ -94,7 +94,7 @@ Configuration
 
 Since OpenLDAP 2.5 version, ppm configuration is held in a binary
 attribute of the password policy: pwdCheckModuleArg
-The configuration file (/etc/openldap/ppm.conf by default) is to be
+The example file (/etc/openldap/ppm.example by default) is to be
 considered as an example configuration, to import in the pwdCheckModuleArg
 attribute. It is also used for testing passwords with the test program
 provided.
@@ -216,7 +216,7 @@ A more detailed message is written to the server log.
 Server log:
 
 ```
-Jul 27 20:09:14 machine slapd[20270]: ppm: Opening file /etc/openldap/ppm.conf
+Jul 27 20:09:14 machine slapd[20270]: ppm: Opening file /etc/openldap/ppm.example
 Jul 27 20:09:14 machine slapd[20270]: ppm: Param = minQuality, value = 3, min = (null), minForPoint= (null)
 Jul 27 20:09:14 machine slapd[20270]: ppm:  Accepted replaced value: 3
 Jul 27 20:09:14 machine slapd[20270]: ppm: Param = forbiddenChars, value = , min = (null), minForPoint= (null)
@@ -245,7 +245,7 @@ It is possible to test one particular password using directly the test program:
 
 ```
 cd /usr/local/openldap/lib64
-LD_LIBRARY_PATH=. ./ppm_test "uid=test,ou=users,dc=my-domain,dc=com" "my_password" "/usr/local/openldap/etc/openldap/ppm.conf" && echo OK
+LD_LIBRARY_PATH=. ./ppm_test "uid=test,ou=users,dc=my-domain,dc=com" "my_password" "/usr/local/openldap/etc/openldap/ppm.example" && echo OK
 ```
 
 
