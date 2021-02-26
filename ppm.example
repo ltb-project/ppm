@@ -32,13 +32,6 @@
 # defines the minimum point numbers for the password to be accepted.
 minQuality 3
 
-# maxLength parameter
-# Format:
-# maxLength [NUMBER]
-# Description:
-# The password must not be more than [NUMBER] long. 0 means no limit is set.
-maxLength 0
-
 # checkRDN parameter
 # Format:
 # checkRDN [0 | 1]
