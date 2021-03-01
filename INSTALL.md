@@ -12,7 +12,8 @@ Be sure to have copied ppm module into contrib/slapd-modules OpenLDAP source
 directory.
 
 Adapt the Makefile command to indicate:
-OLDAP_SOURCES : should point to OpenLDAP source directory
+LDAP_SRC: path to OpenLDAP source directory
+LDAP_BUILD: (optionally) path to OpenLDAP object files (same as above if undefined)
 CONFIG: where the ppm.example file will finally stand
         note: ppm configuration now lies into pwdCheckModuleArg password policy attribute
               provided example file is only helpful as an example or for testing
@@ -27,8 +28,8 @@ then type:
 
 ```
 make clean
-make CONFIG=/etc/openldap/ppm.example OLDAP_SOURCES=../../..
-make test
+make CONFIG=/etc/openldap/ppm.example LDAP_SRC=../../..
+make test LDAP_SRC=../../..
 make install CONFIG=/etc/openldap/ppm.example LIBDIR=/usr/lib/openldap
 ```
 
@@ -37,8 +38,8 @@ For LTB build, use rather:
 
 ```
 make clean
-make "CONFIG=/usr/local/openldap/etc/openldap/ppm.example" "OLDAP_SOURCES=.."
-make test
+make "CONFIG=/usr/local/openldap/etc/openldap/ppm.example" "LDAP_SRC=.."
+make test LDAP_SRC=..
 make install CONFIG=/usr/local/openldap/etc/openldap/ppm.example LIBDIR=/usr/local/openldap/lib64
 ```
 

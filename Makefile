@@ -4,8 +4,14 @@
 
 CC=gcc
 
-# Path of OpenLDAP sources
-OLDAP_SOURCES=../../..
+# Path to the OpenLDAP source tree
+LDAP_SRC=../../..
+
+# Path to the OpenLDAP object tree - same as above unless
+# you're doing out-of-tree builds.
+LDAP_BUILD=$(LDAP_SRC)
+
+
 # Where the ppm example file should be installed
 CONFIG=/etc/openldap/ppm.example
 # Path of OpenLDAP installed libs, where the ppm library should be installed
@@ -17,13 +23,13 @@ OPT=-g -O2 -Wall -fpic 						\
 
 # Where to find the OpenLDAP headers.
 
-LDAP_INC=-I$(OLDAP_SOURCES)/include \
-	 -I$(OLDAP_SOURCES)/servers/slapd
+LDAP_INC=-I$(LDAP_SRC)/include \
+	 -I$(LDAP_SRC)/servers/slapd
 
 # Where to find the OpenLDAP libraries.
 
-LDAP_LIBS=-L$(OLDAP_SOURCES)/libraries/liblber/.libs \
-	  -L$(OLDAP_SOURCES)/libraries/libldap/.libs
+LDAP_LIBS=-L$(LDAP_BUILD)/libraries/liblber/.libs \
+	  -L$(LDAP_BUILD)/libraries/libldap/.libs
 
 CRACK_INC=-DCRACKLIB
 
@@ -62,6 +68,6 @@ clean:
 	$(RM) -rf .libs
 
 test: ppm ppm_test
-	$(TESTS)
+	LDAP_SRC=$(LDAP_SRC) $(TESTS)
 
 
