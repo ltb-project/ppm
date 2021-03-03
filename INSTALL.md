@@ -24,22 +24,14 @@ If necessary, you can also adapt some OpenLDAP source directories (if changed):
 LDAP_INC : OpenLDAP headers directory
 LDAP_LIBS : OpenLDAP built libraries directory
 
-then type:
+
+Here is an illustrative example showing how to use the options:
+(based upon the default prefix /usr/local of OpenLDAP)
 
 ```
 make clean
-make CONFIG=/etc/openldap/ppm.example LDAP_SRC=../../..
+make CONFIG=/usr/local/openldap/etc/ppm.example LDAP_SRC=../../..
 make test LDAP_SRC=../../..
-make install CONFIG=/etc/openldap/ppm.example LIBDIR=/usr/lib/openldap
-```
-
-
-For LTB build, use rather:
-
-```
-make clean
-make "CONFIG=/usr/local/openldap/etc/openldap/ppm.example" "LDAP_SRC=.."
-make test LDAP_SRC=..
-make install CONFIG=/usr/local/openldap/etc/openldap/ppm.example LIBDIR=/usr/local/openldap/lib64
+make install CONFIG=/usr/local/openldap/etc/ppm.example LIBDIR=/usr/local/lib
 ```
 
