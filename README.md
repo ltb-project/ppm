@@ -26,21 +26,25 @@ See INSTALL file
 USAGE
 -----
 
-Create a password policy entry and indicate the fresh compiled
-library ppm.so:
+Create a password policy entry and indicate the path of the ppm.so library
+and the content of the desired policy.
+Use a base64 tool to code / decode the content of the policy stored into
+pwdCheckModuleArg. Here is an example:
 
+```
 dn: cn=default,ou=policies,dc=my-domain,dc=com
 objectClass: pwdPolicy
+objectClass: top
 objectClass: pwdPolicyChecker
 objectClass: person
-objectClass: top
-cn: default
-sn: default
-pwdAttribute: userPassword
 pwdCheckQuality: 2
-...
-pwdCheckModule: /path/to/new/ppm.so
-pwdCheckModuleArg: [see configuration section]
+pwdAttribute: userPassword
+sn: default
+cn: default
+pwdMinLength: 6
+pwdCheckModule: /usr/local/lib/ppm.so
+pwdCheckModuleArg:: bWluUXVhbGl0eSAzCmNoZWNrUkROIDAKZm9yYmlkZGVuQ2hhcnMKbWF4Q29uc2VjdXRpdmVQZXJDbGFzcyAwCnVzZUNyYWNrbGliIDAKY3JhY2tsaWJEaWN0IC92YXIvY2FjaGUvY3JhY2tsaWIvY3JhY2tsaWJfZGljdApjbGFzcy11cHBlckNhc2UgQUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVogMCAxCmNsYXNzLWxvd2VyQ2FzZSBhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5eiAwIDEKY2xhc3MtZGlnaXQgMDEyMzQ1Njc4OSAwIDEKY2xhc3Mtc3BlY2lhbCA8Piw/Oy46LyHCp8O5JSrCtV7CqCTCo8KyJsOpfiIjJ3soWy18w6hgX1zDp17DoEApXcKwPX0rIDAgMQ==
+```
 
 
 See slapo-ppolicy for more information, but to sum up:

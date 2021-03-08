@@ -1,37 +1,46 @@
 INSTALLATION
 ============
 
-Build dependencies
+Dependencies
 ------------------
-OpenLDAP sources must be available. For an easier build, copy all ppm module
-into contrib/slapd-modules OpenLDAP source directory.
+ppm is provided along with OpenLDAP sources. By default, it is available into contrib/slapd-modules.
+ - make sure both OpenLDAP sources and ppm are available for building.
+ - install cracklib development files if you want to test passwords against cracklib
+
 
 Build
 -----
-Be sure to have copied ppm module into contrib/slapd-modules OpenLDAP source
-directory.
+Enter contrib/slapd-modules/ppm directory
 
-Adapt the Makefile command to indicate:
-LDAP_SRC: path to OpenLDAP source directory
-LDAP_BUILD: (optionally) path to OpenLDAP object files (same as above if undefined)
-CONFIG: where the ppm.example file will finally stand
+You can optionally customize some variables if you don't want the default ones:
+- prefix: prefix of the path where ppm is to be installed (default to /usr/local)
+- libdir: where the ppm library is to be deployed (default to /lib under prefix)
+- etcdir: where the ppm example policy is to be deployed (default to /etc/openldap under prefix)
+- LDAP_SRC: path to OpenLDAP source directory
+- Options in OPTS variable:
+    CONFIG_FILE: (DEPRECATED) path to a ppm configuration file (see PPM_READ_FILE in ppm.h)
         note: ppm configuration now lies into pwdCheckModuleArg password policy attribute
               provided example file is only helpful as an example or for testing
-LIBDIR: where the library will be installed
-DEBUG: If defined, ppm logs its actions with syslog
-
-If necessary, you can also adapt some OpenLDAP source directories (if changed):
-LDAP_INC : OpenLDAP headers directory
-LDAP_LIBS : OpenLDAP built libraries directory
+    CRACKLIB: if defined, link against cracklib
+    DEBUG: If defined, ppm logs its actions with syslog
 
 
-Here is an illustrative example showing how to use the options:
+To build ppm, simply run these commands:
 (based upon the default prefix /usr/local of OpenLDAP)
 
 ```
 make clean
-make CONFIG=/usr/local/openldap/etc/ppm.example LDAP_SRC=../../..
+make
+make test
+make install
+```
+
+Here is an illustrative example showing how to overload some options:
+
+```
+make clean
+make LDAP_SRC=../../.. prefix=/usr/local libdir=/usr/local/lib 
 make test LDAP_SRC=../../..
-make install CONFIG=/usr/local/openldap/etc/ppm.example LIBDIR=/usr/local/lib
+make install prefix=/usr/local libdir=/usr/local/lib
 ```
 
