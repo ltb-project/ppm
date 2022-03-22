@@ -7,7 +7,7 @@
 ppm (Password Policy Module) - extension of the password policy overlay
 .SH SYNOPSIS
 .PP
-ETCDIR/ppm.example
+/usr/local/openldap/etc/openldap/ppm.example
 .SH DESCRIPTION
 .PP
 \f[B]ppm\f[R] is an OpenLDAP module for checking password quality when
@@ -90,7 +90,7 @@ if a password does not pass cracklib check, then it is rejected.
 Since OpenLDAP 2.5 version, ppm configuration is held in a binary
 attribute of the password policy: \f[B]pwdCheckModuleArg\f[R]
 .PP
-The example file (\f[B]ETCDIR/ppm.example\f[R] by default) is to be
+The example file (\f[B]/usr/local/openldap/etc/openldap/ppm.example\f[R] by default) is to be
 considered as an example configuration, to import in the
 \f[B]pwdCheckModuleArg\f[R] attribute.
 It is also used for testing passwords with the test program provided.
@@ -332,7 +332,7 @@ LD_LIBRARY_PATH=. ./ppm_test \[dq]uid=test,ou=users,dc=my-domain,dc=com\[dq] \[d
 .fi
 .SH FILES
 .PP
-\f[B]ETCDIR/ppm.example\f[R]
+\f[B]/usr/local/openldap/etc/openldap/ppm.example\f[R]
 .RS
 .PP
 example of ppm configuration to be inserted in
