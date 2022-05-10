@@ -23,7 +23,8 @@ Create a password policy entry and indicate the path of the ppm.so
 library and the content of the desired policy.
 Use a base64 tool to code / decode the content of the policy stored into
 \f[B]pwdCheckModuleArg\f[R].
-Here is an example:
+.PP
+Here is an example for OpenLDAP 2.6:
 .IP
 .nf
 \f[C]
@@ -37,10 +38,12 @@ pwdAttribute: userPassword
 sn: default
 cn: default
 pwdMinLength: 6
-pwdCheckModule: /usr/local/lib/ppm.so
 pwdCheckModuleArg:: bWluUXVhbGl0eSAzCmNoZWNrUkROIDAKY2hlY2tBdHRyaWJ1dGVzCmZvcmJpZGRlbkNoYXJzCm1heENvbnNlY3V0aXZlUGVyQ2xhc3MgMAp1c2VDcmFja2xpYiAwCmNyYWNrbGliRGljdCAvdmFyL2NhY2hlL2NyYWNrbGliL2NyYWNrbGliX2RpY3QKY2xhc3MtdXBwZXJDYXNlIEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaIDAgMQpjbGFzcy1sb3dlckNhc2UgYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXogMCAxCmNsYXNzLWRpZ2l0IDAxMjM0NTY3ODkgMCAxCmNsYXNzLXNwZWNpYWwgPD4sPzsuOi8hwqfDuSUqwrVewqgkwqPCsibDqX4iIyd7KFstfMOoYF9cw6dew6BAKV3CsD19KyAwIDEK
 \f[R]
 .fi
+.PP
+For OpenLDAP 2.5, you must add a \f[B]pwdCheckModule\f[R] attribute
+pointing to the ppm module (for example /usr/local/lib/ppm.so)
 .PP
 See \f[B]slapo-ppolicy\f[R] for more information, but to sum up:
 .IP \[bu] 2
@@ -49,17 +52,21 @@ enable ppolicy overlay in your database.
 define a default password policy in OpenLDAP configuration or use
 pwdPolicySubentry attribute to point to the given policy.
 .PP
-This example show the activation for a \f[B]slapd.conf\f[R] file (see
-\f[B]slapd-config\f[R] and \f[B]slapo-ppolicy\f[R] for more information
-for \f[B]cn=config\f[R] configuration)
+This example show the activation for a \f[B]slapd.conf\f[R] file for
+OpenLDAP 2.6 (see \f[B]slapd-config\f[R] and \f[B]slapo-ppolicy\f[R] for
+more information for \f[B]cn=config\f[R] configuration)
 .IP
 .nf
 \f[C]
 overlay ppolicy
 ppolicy_default \[dq]cn=default,ou=policies,dc=my-domain,dc=com\[dq]
+ppolicy_check_module /usr/local/openldap/libexec/openldap/ppm.so
 #ppolicy_use_lockout   # for having more infos about the lockout
 \f[R]
 .fi
+.PP
+For OpenLDAP 2.5, you must remove \f[B]ppolicy_check_module\f[R]
+parameter as it is managed in the password policy definition
 .SH FEATURES
 .PP
 Here are the main features:
@@ -93,7 +100,7 @@ if a password does not pass cracklib check, then it is rejected.
 Since OpenLDAP 2.5 version, ppm configuration is held in a binary
 attribute of the password policy: \f[B]pwdCheckModuleArg\f[R]
 .PP
-The example file (\f[B]ETCDIR/ppm.example\f[R] by default) is to be
+The example file (\f[B]/usr/local/etc/openldap/ppm.example\f[R] by default) is to be
 considered as an example configuration, to import in the
 \f[B]pwdCheckModuleArg\f[R] attribute.
 It is also used for testing passwords with the test program provided.
@@ -309,7 +316,7 @@ LD_LIBRARY_PATH=. ./ppm_test \[dq]uid=test,ou=users,dc=my-domain,dc=com\[dq] \[d
 .fi
 .SH FILES
 .PP
-\f[B]ETCDIR/ppm.example\f[R]
+\f[B]/usr/local/etc/openldap/ppm.example\f[R]
 .RS
 .PP
 example of ppm configuration to be inserted in
@@ -320,7 +327,9 @@ example of ppm configuration to be inserted in
 .RS
 .PP
 ppm library, loaded by the \f[B]pwdCheckModule\f[R] attribute of given
-password policy
+password policy (OpenLDAP 2.5) or by the \f[B]ppolicy_check_module\f[R]
+/ \f[B]olcPPolicyCheckModule\f[R] parameters of the ppolicy overlay
+(OpenLDAP 2.6)
 .RE
 .PP
 \f[B]ppm_test\f[R]

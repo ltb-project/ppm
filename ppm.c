@@ -6,10 +6,14 @@
 
 
 /*
-  password policy module is called with:
+  password policy module is called with (openldap 2.6):
   int check_password (char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
 
+  password policy module is called with (openldap 2.5):
+  int check_password (char *pPasswd, char **ppErrStr, Entry *e, void *pArg)
+
   *pPasswd: new password
+  **ppErrStr: pointer to the string containing the error message
   *ppErrmsg: pointer to a struct berval containing space for an error message of length bv_len
   *e: pointer to the current user entry
   *pArg: pointer to a struct berval holding the value of pwdCheckModuleArg attr
@@ -360,14 +364,22 @@ typeParam(char* param)
 #endif
 
 static int
+#if OLDAP_VERSION == OLDAP25
+realloc_error_message(char **target, int curlen, int nextlen)
+#else
 realloc_error_message(const char *orig, char **target, int curlen, int nextlen)
+#endif
 {
     if (curlen < nextlen + MEMORY_MARGIN) {
         ppm_log(LOG_WARNING,
                "ppm: Reallocating szErrStr from %d to %d", curlen,
                nextlen + MEMORY_MARGIN);
+#if OLDAP_VERSION == OLDAP25
+        ber_memfree(*target);
+#else
         if (*target != orig)
             ber_memfree(*target);
+#endif
         curlen = nextlen + MEMORY_MARGIN;
         *target = (char *) ber_memalloc(curlen);
     }
@@ -511,14 +523,23 @@ containsAttributes(char* passwd, Entry* pEntry, char* checkAttributes)
 
 
 int
+#if OLDAP_VERSION == OLDAP25
+check_password(char *pPasswd, char **ppErrStr, Entry *e, void *pArg)
+#else
 check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
+#endif
 {
 
     Entry *pEntry = e;
     struct berval *pwdCheckModuleArg = pArg;
+#if OLDAP_VERSION == OLDAP25
+    char *szErrStr = (char *) ber_memalloc(MEM_INIT_SZ);
+    int mem_len = MEM_INIT_SZ;
+#else
     char *origmsg = ppErrmsg->bv_val;
     char *szErrStr = origmsg;
     int mem_len = ppErrmsg->bv_len;
+#endif
     int numParam = 0; // Number of params in current configuration
 
     int useCracklib;
@@ -554,7 +575,11 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
 #else
     if ( !pwdCheckModuleArg || !pwdCheckModuleArg->bv_val ) {
         ppm_log(LOG_ERR, "ppm: No config provided in pwdCheckModuleArg");
+#if OLDAP_VERSION == OLDAP25
+        mem_len = realloc_error_message(&szErrStr, mem_len,
+#else
         mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
+#endif
                         strlen(GENERIC_ERROR));
         sprintf(szErrStr, GENERIC_ERROR);
         goto fail;
@@ -662,7 +687,11 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
     }
 
     if (nQuality < minQuality) {
+#if OLDAP_VERSION == OLDAP25
+        mem_len = realloc_error_message(&szErrStr, mem_len,
+#else
         mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
+#endif
                                         strlen(PASSWORD_QUALITY_SZ) +
                                         strlen(pEntry->e_nname.bv_val) + 4);
         sprintf(szErrStr, PASSWORD_QUALITY_SZ, pEntry->e_nname.bv_val,
@@ -675,7 +704,11 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
             if ((nbInClass[i] < fileConf[i].min) &&
                  strlen(fileConf[i].value.sVal) != 0) {
                 // constraint is not satisfied... goto fail
+#if OLDAP_VERSION == OLDAP25
+                mem_len = realloc_error_message(&szErrStr, mem_len,
+#else
                 mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
+#endif
                                                 strlen(PASSWORD_CRITERIA) +
                                                 strlen(pEntry->e_nname.bv_val) + 
                                                 2 + PARAM_MAX_LEN);
@@ -688,7 +721,11 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
 
     // Password checking done, now loocking for forbiddenChars criteria
     if (nForbiddenChars > 0) {  // at least 1 forbidden char... goto fail
+#if OLDAP_VERSION == OLDAP25
+        mem_len = realloc_error_message(&szErrStr, mem_len,
+#else
         mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
+#endif
                                         strlen(PASSWORD_FORBIDDENCHARS) +
                                         strlen(pEntry->e_nname.bv_val) + 2 +
                                         VALUE_MAX_LEN);
@@ -706,7 +743,11 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
                 // Too much consecutive characters of the same class
                 ppm_log(LOG_NOTICE, "ppm: Too much consecutive chars for class %s",
                        fileConf[i].param);
+#if OLDAP_VERSION == OLDAP25
+                mem_len = realloc_error_message(&szErrStr, mem_len,
+#else
                 mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
+#endif
                                         strlen(PASSWORD_MAXCONSECUTIVEPERCLASS) +
                                         strlen(pEntry->e_nname.bv_val) + 2 +
                                         PARAM_MAX_LEN);
@@ -726,7 +767,11 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
             if (( fd = fopen ( cracklibDictFiles[j], "r")) == NULL ) {
                 ppm_log(LOG_NOTICE, "ppm: Error while reading %s file",
                        cracklibDictFiles[j]);
+#if OLDAP_VERSION == OLDAP25
+                mem_len = realloc_error_message(&szErrStr, mem_len,
+#else
                 mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
+#endif
                                 strlen(GENERIC_ERROR));
                 sprintf(szErrStr, GENERIC_ERROR);
                 goto fail;
@@ -740,7 +785,11 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
         if ( res != NULL ) {
                 ppm_log(LOG_NOTICE, "ppm: cracklib does not validate password for entry %s",
                        pEntry->e_nname.bv_val);
+#if OLDAP_VERSION == OLDAP25
+                mem_len = realloc_error_message(&szErrStr, mem_len,
+#else
                 mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
+#endif
                                         strlen(PASSWORD_CRACKLIB) +
                                         strlen(pEntry->e_nname.bv_val));
                 sprintf(szErrStr, PASSWORD_CRACKLIB, pEntry->e_nname.bv_val);
@@ -755,7 +804,11 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
     if (checkRDN == 1 && containsRDN(pPasswd, pEntry->e_nname.bv_val))
     // RDN check enabled and a token from RDN is found in password: goto fail
     {
+#if OLDAP_VERSION == OLDAP25
+        mem_len = realloc_error_message(&szErrStr, mem_len,
+#else
         mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
+#endif
                                         strlen(RDN_TOKEN_FOUND) +
                                         strlen(pEntry->e_nname.bv_val));
         sprintf(szErrStr, RDN_TOKEN_FOUND, pEntry->e_nname.bv_val);
@@ -767,7 +820,11 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
     if (containsAttributes(pPasswd, pEntry, checkAttributes))
     // A token from an attribute is found in password: goto fail
     {
+#if OLDAP_VERSION == OLDAP25
+        mem_len = realloc_error_message(&szErrStr, mem_len,
+#else
         mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
+#endif
                                         strlen(ATTR_TOKEN_FOUND) +
                                         strlen(pEntry->e_nname.bv_val));
         sprintf(szErrStr, ATTR_TOKEN_FOUND, pEntry->e_nname.bv_val);
@@ -775,12 +832,22 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
         goto fail;
     }
 
+#if OLDAP_VERSION == OLDAP25
+    *ppErrStr = strdup("");
+    ber_memfree(szErrStr);
+#else
     szErrStr[0] = '\0';
+#endif
     return (LDAP_SUCCESS);
 
   fail:
+#if OLDAP_VERSION == OLDAP25
+    *ppErrStr = strdup(szErrStr);
+    ber_memfree(szErrStr);
+#else
     ppErrmsg->bv_val = szErrStr;
     ppErrmsg->bv_len = mem_len;
+#endif
     return (EXIT_FAILURE);
 
 }

@@ -20,6 +20,8 @@ INSTALL = /usr/bin/install
 CC = gcc
 OPT = -g -O2 -fpic
 
+OLDAP_VERSION = 26
+
 # To skip linking against CRACKLIB make CRACK=no
 CRACK=yes
 CRACKDEF_yes= -DCRACKLIB
@@ -31,7 +33,7 @@ CRACKLIB_no=
 CRACKDEF=$(CRACKDEF_$(CRACK))
 CRACKLIB=$(CRACKLIB_$(CRACK))
 
-DEFS = -DDEBUG $(CRACKDEF)
+DEFS = -DDEBUG $(CRACKDEF) -DOLDAP_VERSION=$(OLDAP_VERSION)
 # Define if using a config file:
 # -DCONFIG_FILE="\"$(sysconfdir)/$(EXAMPLE)\""
 

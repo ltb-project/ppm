@@ -28,7 +28,9 @@ see slapo-ppolicy(5) section **pwdCheckModule**.
 Create a password policy entry and indicate the path of the ppm.so library
 and the content of the desired policy.
 Use a base64 tool to code / decode the content of the policy stored into
-**pwdCheckModuleArg**. Here is an example:
+**pwdCheckModuleArg**.
+
+Here is an example for OpenLDAP 2.6:
 
 ```
 dn: cn=default,ou=policies,dc=my-domain,dc=com
@@ -41,9 +43,12 @@ pwdAttribute: userPassword
 sn: default
 cn: default
 pwdMinLength: 6
-pwdCheckModule: /usr/local/lib/ppm.so
 pwdCheckModuleArg:: bWluUXVhbGl0eSAzCmNoZWNrUkROIDAKY2hlY2tBdHRyaWJ1dGVzCmZvcmJpZGRlbkNoYXJzCm1heENvbnNlY3V0aXZlUGVyQ2xhc3MgMAp1c2VDcmFja2xpYiAwCmNyYWNrbGliRGljdCAvdmFyL2NhY2hlL2NyYWNrbGliL2NyYWNrbGliX2RpY3QKY2xhc3MtdXBwZXJDYXNlIEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaIDAgMQpjbGFzcy1sb3dlckNhc2UgYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXogMCAxCmNsYXNzLWRpZ2l0IDAxMjM0NTY3ODkgMCAxCmNsYXNzLXNwZWNpYWwgPD4sPzsuOi8hwqfDuSUqwrVewqgkwqPCsibDqX4iIyd7KFstfMOoYF9cw6dew6BAKV3CsD19KyAwIDEK
 ```
+
+For OpenLDAP 2.5, you must add a **pwdCheckModule** attribute pointing
+to the ppm module (for example /usr/local/lib/ppm.so)
+
 
 
 See **slapo-ppolicy** for more information, but to sum up:
@@ -51,15 +56,19 @@ See **slapo-ppolicy** for more information, but to sum up:
 - enable ppolicy overlay in your database.
 - define a default password policy in OpenLDAP configuration or use pwdPolicySubentry attribute to point to the given policy.
 
-This example show the activation for a **slapd.conf** file
+This example show the activation for a **slapd.conf** file for OpenLDAP 2.6
 (see **slapd-config** and **slapo-ppolicy** for more information for
  **cn=config** configuration)
 
 ```
 overlay ppolicy
 ppolicy_default "cn=default,ou=policies,dc=my-domain,dc=com"
+ppolicy_check_module /usr/local/openldap/libexec/openldap/ppm.so
 #ppolicy_use_lockout   # for having more infos about the lockout
 ```
+
+For OpenLDAP 2.5, you must remove **ppolicy_check_module** parameter as
+it is managed in the password policy definition
 
 
 # FEATURES
@@ -302,7 +311,8 @@ LD_LIBRARY_PATH=. ./ppm_test "uid=test,ou=users,dc=my-domain,dc=com" "my_passwor
 
 **ppm.so**
 
-> ppm library, loaded by the **pwdCheckModule** attribute of given password policy
+> ppm library, loaded by the **pwdCheckModule** attribute of given password policy (OpenLDAP 2.5)
+> or by the **ppolicy_check_module** / **olcPPolicyCheckModule** parameters of the ppolicy overlay (OpenLDAP 2.6)
 
 **ppm_test**
 
