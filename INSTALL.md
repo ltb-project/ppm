@@ -45,7 +45,7 @@ Here is an illustrative example showing how to overload some options:
 ```
 make clean
 make LDAP_SRC=../../.. prefix=/usr/local libdir=/usr/local/lib OLDAP_VERSION=26
-make test LDAP_SRC=../../..
+make test LDAP_SRC=../../.. OLDAP_VERSION=26
 make doc prefix=/usr/local
 make install prefix=/usr/local libdir=/usr/local/lib
 ```

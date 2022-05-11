@@ -858,7 +858,8 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
     }
 
     // Password checking done, now looking for checkAttributes criteria
-    if (containsAttributes(pPasswd, pEntry, checkAttributes))
+    if ( strcmp(checkAttributes, "") !=0 &&
+         containsAttributes(pPasswd, pEntry, checkAttributes))
     // A token from an attribute is found in password: goto fail
     {
 #if OLDAP_VERSION == OLDAP25
