@@ -44,10 +44,12 @@ sn: default
 cn: default
 pwdMinLength: 6
 pwdCheckModuleArg:: bWluUXVhbGl0eSAzCmNoZWNrUkROIDAKY2hlY2tBdHRyaWJ1dGVzCmZvcmJpZGRlbkNoYXJzCm1heENvbnNlY3V0aXZlUGVyQ2xhc3MgMAp1c2VDcmFja2xpYiAwCmNyYWNrbGliRGljdCAvdmFyL2NhY2hlL2NyYWNrbGliL2NyYWNrbGliX2RpY3QKY2xhc3MtdXBwZXJDYXNlIEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaIDAgMSAwCmNsYXNzLWxvd2VyQ2FzZSBhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5eiAwIDEgMApjbGFzcy1kaWdpdCAwMTIzNDU2Nzg5IDAgMSAwCmNsYXNzLXNwZWNpYWwgPD4sPzsuOi8hwqfDuSUqwrVewqgkwqPCsibDqX4iIyd7KFstfMOoYF9cw6dew6BAKV3CsD19KyAwIDEgMAoK
+pwdUseCheckModule: TRUE
 ```
 
 For OpenLDAP 2.5, you must add a **pwdCheckModule** attribute pointing
-to the ppm module (for example /usr/local/lib/ppm.so)
+to the ppm module (for example /usr/local/lib/ppm.so),
+and remove the **pwdUseCheckModule** attribute.
 
 
 
