@@ -606,9 +606,6 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
     ppm_log(LOG_NOTICE, "ppm: RAW configuration: %s", pwdCheckModuleArg->bv_val);
 #endif
 
-    for (i = 0; i < CONF_MAX_SIZE; i++)
-        nbInClass[i] = 0;
-
     /* Set default values */
     conf fileConf[CONF_MAX_SIZE] = {
         {"minQuality", typeInt, {.iVal = DEFAULT_QUALITY}, 0, 0, 0
@@ -669,6 +666,9 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
                 getValue(fileConf, numParam, "checkAttributes")->sVal,
                 VALUE_MAX_LEN);
 
+    for (i = 0; i < numParam; i++)
+        nbInClass[i] = 0;
+
 
     /*The password must have at least minQuality strength points with one
      * point granted if the password contains at least minForPoint characters for each class
@@ -692,7 +692,7 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
     }
 
     // Password checking done, now loocking for minForPoint criteria
-    for (i = 0; i < CONF_MAX_SIZE; i++) {
+    for (i = 0; i < numParam; i++) {
         if (strstr(fileConf[i].param, "class-") != NULL) {
             if ((nbInClass[i] >= fileConf[i].minForPoint)
                 && strlen(fileConf[i].value.sVal) != 0) {
@@ -718,7 +718,7 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
     }
 
     // Password checking done, now loocking for minimum criteria
-    for (i = 0; i < CONF_MAX_SIZE; i++) {
+    for (i = 0; i < numParam; i++) {
         if (strstr(fileConf[i].param, "class-") != NULL) {
             if ((nbInClass[i] < fileConf[i].min) &&
                  strlen(fileConf[i].value.sVal) != 0) {
@@ -739,7 +739,7 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
     }
 
     // Password checking done, now loocking for maximum criteria
-    for (i = 0; i < CONF_MAX_SIZE; i++) {
+    for (i = 0; i < numParam; i++) {
         if (strstr(fileConf[i].param, "class-") != NULL) {
             if ( (fileConf[i].max != 0) &&
                  (nbInClass[i] > fileConf[i].max) &&
@@ -776,7 +776,7 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
     }
 
     // Password checking done, now loocking for maxConsecutivePerClass criteria
-    for (i = 0; i < CONF_MAX_SIZE; i++) {
+    for (i = 0; i < numParam; i++) {
         if (strstr(fileConf[i].param, "class-") != NULL) {
             if ( maxConsecutivePerClass != 0 &&
                 (maxConsPerClass(pPasswd,fileConf[i].value.sVal)
