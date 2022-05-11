@@ -43,7 +43,7 @@ pwdAttribute: userPassword
 sn: default
 cn: default
 pwdMinLength: 6
-pwdCheckModuleArg:: bWluUXVhbGl0eSAzCmNoZWNrUkROIDAKY2hlY2tBdHRyaWJ1dGVzCmZvcmJpZGRlbkNoYXJzCm1heENvbnNlY3V0aXZlUGVyQ2xhc3MgMAp1c2VDcmFja2xpYiAwCmNyYWNrbGliRGljdCAvdmFyL2NhY2hlL2NyYWNrbGliL2NyYWNrbGliX2RpY3QKY2xhc3MtdXBwZXJDYXNlIEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaIDAgMQpjbGFzcy1sb3dlckNhc2UgYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXogMCAxCmNsYXNzLWRpZ2l0IDAxMjM0NTY3ODkgMCAxCmNsYXNzLXNwZWNpYWwgPD4sPzsuOi8hwqfDuSUqwrVewqgkwqPCsibDqX4iIyd7KFstfMOoYF9cw6dew6BAKV3CsD19KyAwIDEK
+pwdCheckModuleArg:: bWluUXVhbGl0eSAzCmNoZWNrUkROIDAKY2hlY2tBdHRyaWJ1dGVzCmZvcmJpZGRlbkNoYXJzCm1heENvbnNlY3V0aXZlUGVyQ2xhc3MgMAp1c2VDcmFja2xpYiAwCmNyYWNrbGliRGljdCAvdmFyL2NhY2hlL2NyYWNrbGliL2NyYWNrbGliX2RpY3QKY2xhc3MtdXBwZXJDYXNlIEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaIDAgMSAwCmNsYXNzLWxvd2VyQ2FzZSBhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5eiAwIDEgMApjbGFzcy1kaWdpdCAwMTIzNDU2Nzg5IDAgMSAwCmNsYXNzLXNwZWNpYWwgPD4sPzsuOi8hwqfDuSUqwrVewqgkwqPCsibDqX4iIyd7KFstfMOoYF9cw6dew6BAKV3CsD19KyAwIDEgMAoK
 ```
 
 For OpenLDAP 2.5, you must add a **pwdCheckModule** attribute pointing
@@ -87,7 +87,10 @@ character class are present in the password.
 - passwords must have at least n of the corresponding character class
 present, else they are rejected.
 
-- the two previous criteria are checked against any specific character class
+- passwords must have at the most x occurrences of characters from the
+corresponding character class, else they are rejected.
+
+- the three previous criteria are checked against any specific character class
 defined.
 
 - if a password contains any of the forbidden characters, then it is
@@ -121,7 +124,7 @@ configuration file path.
 The syntax of a configuration line is:
 
 ```
-parameter value [min] [minForPoint]
+parameter value [min] [minForPoint] [max]
 ```
 
 with spaces being delimiters and Line Feed (LF) ending the line.
@@ -193,15 +196,16 @@ cracklibDict /var/cache/cracklib/cracklib_dict
 
 # classes parameter
 # Format:
-# class-[CLASS_NAME] [CHARACTERS_DEFINING_CLASS] [MIN] [MIN_FOR_POINT]
+# class-[CLASS_NAME] [CHARACTERS_DEFINING_CLASS] [MIN] [MIN_FOR_POINT] [MAX]
 # Description:
 # [CHARACTERS_DEFINING_CLASS]: characters defining the class (no separator)
 # [MIN]: If at least [MIN] characters of this class is not found in the password, then it is rejected
 # [MIN_FOR_POINT]: one point is granted if password contains at least [MIN_FOR_POINT] character numbers of this class
-class-upperCase ABCDEFGHIJKLMNOPQRSTUVWXYZ 0 1
-class-lowerCase abcdefghijklmnopqrstuvwxyz 0 1
-class-digit 0123456789 0 1
-class-special <>,?;.:/!§ù%*µ^¨$£²&é~"#'{([-|è`_\ç^à@)]°=}+ 0 1
+# [MAX]: if > [MAX] occurrences of characters from this class are found, then the password is rejected (0 means no maximum)
+class-upperCase ABCDEFGHIJKLMNOPQRSTUVWXYZ 0 1 0
+class-lowerCase abcdefghijklmnopqrstuvwxyz 0 1 0
+class-digit 0123456789 0 1 0
+class-special <>,?;.:/!§ù%*µ^¨$£²&é~"#'{([-|è`_\ç^à@)]°=}+ 0 1 0
 ```
 
 # EXAMPLE
@@ -212,11 +216,11 @@ minQuality 4
 forbiddenChars .?,
 checkRDN 1
 checkAttributes mail
-class-upperCase ABCDEFGHIJKLMNOPQRSTUVWXYZ 0 5
-class-lowerCase abcdefghijklmnopqrstuvwxyz 0 12
-class-digit 0123456789 0 1
-class-special <>,?;.:/!§ù%*µ^¨$£²&é~"#'{([-|è`_\ç^à@)]°=}+ 0 1
-class-myClass :) 1 1``
+class-upperCase ABCDEFGHIJKLMNOPQRSTUVWXYZ 0 5 0
+class-lowerCase abcdefghijklmnopqrstuvwxyz 0 12 0
+class-digit 0123456789 0 1 0
+class-special <>,?;.:/!§ù%*µ^¨$£²&é~"#'{([-|è`_\ç^à@)]°=}+ 0 1 0
+class-myClass :) 1 1 0
 ```
 
 the password **ThereIsNoCowLevel)** is working, because:
@@ -250,7 +254,7 @@ While evaluating a password change, you should observe something looking at this
 ```
 ppm: entry uid=jack.oneill,ou=people,dc=my-domain,dc=com
 ppm: Reading pwdCheckModuleArg attribute
-ppm: RAW configuration: minQuality 3#012checkRDN 0#012checkAttributes mail,uid#012forbiddenChars#012maxConsecutivePerClass 0#012useCracklib 0#012cracklibDict /var/cache/cracklib/cracklib_dict#012class-upperCase ABCDEFGHIJKLMNOPQRSTUVWXYZ 0 1#012class-lowerCase abcdefghijklmnopqrstuvwxyz 0 1#012class-digit 0123456789 0 1#012class-special <>,?;.:/!§ù%*µ^¨$£²&é~"#'{([-|è`_\ç^à@)]°=}+ 0 1
+ppm: RAW configuration: minQuality 3#012checkRDN 0#012checkAttributes mail,uid#012forbiddenChars#012maxConsecutivePerClass 0#012useCracklib 0#012cracklibDict /var/cache/cracklib/cracklib_dict#012class-upperCase ABCDEFGHIJKLMNOPQRSTUVWXYZ 0 1 0#012class-lowerCase abcdefghijklmnopqrstuvwxyz 0 1 0#012class-digit 0123456789 0 1 0#012class-special <>,?;.:/!§ù%*µ^¨$£²&é~"#'{([-|è`_\ç^à@)]°=}+ 0 1 0
 ppm: Parsing pwdCheckModuleArg attribute
 ppm: get line: minQuality 3
 ppm: Param = minQuality, value = 3, min = (null), minForPoint= (null)
@@ -272,17 +276,17 @@ ppm:  Accepted replaced value: 0
 ppm: get line: cracklibDict /var/cache/cracklib/cracklib_dict
 ppm: Param = cracklibDict, value = /var/cache/cracklib/cracklib_dict, min = (null), minForPoint= (null)
 ppm:  Accepted replaced value: /var/cache/cracklib/cracklib_dict
-ppm: get line: class-upperCase ABCDEFGHIJKLMNOPQRSTUVWXYZ 0 1
-ppm: Param = class-upperCase, value = ABCDEFGHIJKLMNOPQRSTUVWXYZ, min = 0, minForPoint= 1
+ppm: get line: class-upperCase ABCDEFGHIJKLMNOPQRSTUVWXYZ 0 1 0
+ppm: Param = class-upperCase, value = ABCDEFGHIJKLMNOPQRSTUVWXYZ, min = 0, minForPoint = 1, max = 0
 ppm:  Accepted replaced value: ABCDEFGHIJKLMNOPQRSTUVWXYZ
-ppm: get line: class-lowerCase abcdefghijklmnopqrstuvwxyz 0 1
-ppm: Param = class-lowerCase, value = abcdefghijklmnopqrstuvwxyz, min = 0, minForPoint= 1
+ppm: get line: class-lowerCase abcdefghijklmnopqrstuvwxyz 0 1 0
+ppm: Param = class-lowerCase, value = abcdefghijklmnopqrstuvwxyz, min = 0, minForPoint = 1, max = 0
 ppm:  Accepted replaced value: abcdefghijklmnopqrstuvwxyz
-ppm: get line: class-digit 0123456789 0 1
-ppm: Param = class-digit, value = 0123456789, min = 0, minForPoint= 1
+ppm: get line: class-digit 0123456789 0 1 0
+ppm: Param = class-digit, value = 0123456789, min = 0, minForPoint = 1, max = 0
 ppm:  Accepted replaced value: 0123456789
-ppm: get line: class-special <>,?;.:/!§ù%*µ^¨$£²&é~"#'{([-|è`_\ç^à@)]°=}+ 0 1
-ppm: Param = class-special, value = <>,?;.:/!§ù%*µ^¨$£²&é~"#'{([-|è`_\ç^à@)]°=}+, min = 0, minForPoint= 1
+ppm: get line: class-special <>,?;.:/!§ù%*µ^¨$£²&é~"#'{([-|è`_\ç^à@)]°=}+ 0 1 0
+ppm: Param = class-special, value = <>,?;.:/!§ù%*µ^¨$£²&é~"#'{([-|è`_\ç^à@)]°=}+, min = 0, minForPoint = 1, max = 0
 ppm:  Accepted replaced value: <>,?;.:/!§ù%*µ^¨$£²&é~"#'{([-|è`_\ç^à@)]°=}+
 ppm: 1 point granted for class class-upperCase
 ppm: 1 point granted for class class-lowerCase
@@ -325,4 +329,4 @@ LD_LIBRARY_PATH=. ./ppm_test "uid=test,ou=users,dc=my-domain,dc=com" "my_passwor
 
 # ACKNOWLEDGEMENTS
 
-This module was developed in 2014-2021 by David Coutadeur.
+This module was developed in 2014-2022 by David Coutadeur.

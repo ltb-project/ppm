@@ -57,8 +57,10 @@
 
 #define PASSWORD_QUALITY_SZ \
   "Password for dn=\"%s\" does not pass required number of strength checks (%d of %d)"
-#define PASSWORD_CRITERIA \
+#define PASSWORD_MIN_CRITERIA \
   "Password for dn=\"%s\" has not reached the minimum number of characters (%d) for class %s"
+#define PASSWORD_MAX_CRITERIA \
+  "Password for dn=\"%s\" has reached the maximum number of characters (%d) for class %s"
 #define PASSWORD_MAXCONSECUTIVEPERCLASS \
   "Password for dn=\"%s\" has reached the maximum number of characters (%d) for class %s"
 #define PASSWORD_FORBIDDENCHARS \
@@ -114,6 +116,7 @@ typedef struct conf {
     genValue value;
     int min;
     int minForPoint;
+    int max;
 } conf;
 
 void ppm_log(int priority, const char *format, ...);
@@ -132,7 +135,8 @@ int min(char *str1, char *str2);
 #endif
 int maxConsPerClass(char *password, char *charClass);
 void storeEntry(char *param, char *value, valueType valType, 
-           char *min, char *minForPoint, conf * fileConf, int *numParam);
+           char *min, char *minForPoint, char *max, conf * fileConf,
+           int *numParam);
 int typeParam(char* param);
 genValue* getValue(conf *fileConf, int numParam, char* param);
 void strcpy_safe(char *dest, char *src, int length_dest);

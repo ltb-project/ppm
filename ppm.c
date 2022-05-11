@@ -124,11 +124,13 @@ int maxConsPerClass(char *password, char *charClass)
 
 void
 storeEntry(char *param, char *value, valueType valType, 
-           char *min, char *minForPoint, conf * fileConf, int *numParam)
+           char *min, char *minForPoint, char *max, conf * fileConf,
+           int *numParam)
 {
     int i = 0;
     int iMin;
     int iMinForPoint;
+    int iMax;
     if (min == NULL || strcmp(min,"") == 0)
       iMin = 0;
     else
@@ -138,6 +140,11 @@ storeEntry(char *param, char *value, valueType valType,
       iMinForPoint = 0;
     else
       iMinForPoint = atoi(minForPoint);
+
+    if (max == NULL || strcmp(max,"") == 0)
+      iMax = 0;
+    else
+      iMax = atoi(max);
 
     // First scan parameters
     for (i = 0; i < *numParam; i++) {
@@ -151,6 +158,7 @@ storeEntry(char *param, char *value, valueType valType,
                 strcpy_safe(fileConf[i].value.sVal, value, VALUE_MAX_LEN);
             fileConf[i].min = iMin;
             fileConf[i].minForPoint = iMinForPoint;
+            fileConf[i].max = iMax;
             if(valType == typeInt)
                 ppm_log(LOG_NOTICE, "ppm:  Accepted replaced value: %d",
                                fileConf[i].value.iVal);
@@ -169,6 +177,7 @@ storeEntry(char *param, char *value, valueType valType,
         strcpy_safe(fileConf[i].value.sVal, value, VALUE_MAX_LEN);
     fileConf[*numParam].min = iMin;
     fileConf[*numParam].minForPoint = iMinForPoint;
+    fileConf[*numParam].max = iMax;
     ++(*numParam);
             if(valType == typeInt)
                 ppm_log(LOG_NOTICE, "ppm:  Accepted new value: %d",
@@ -232,7 +241,7 @@ typeParam(char* param)
         ppm_log(LOG_NOTICE, "ppm: get line: %s",token);
         char *start = token;
         char *word, *value;
-        char *min, *minForPoint;;
+        char *min, *minForPoint, *max;
   
         while (isspace(*start) && isascii(*start))
             start++;
@@ -266,17 +275,21 @@ typeParam(char* param)
             if (minForPoint != NULL)
                 if (strchr(minForPoint, '\n') != NULL)
                     strchr(minForPoint, '\n')[0] = '\0';
+            max = strtok_r(NULL, " \t", &saveptr2);
+            if (max != NULL)
+                if (strchr(max, '\n') != NULL)
+                    strchr(max, '\n')[0] = '\0';
   
   
             nParam = typeParam(word); // search for param in allowedParameters
             if (nParam != sAllowedParameters) // param has been found
             {
                 ppm_log(LOG_NOTICE,
-                   "ppm: Param = %s, value = %s, min = %s, minForPoint= %s",
-                   word, value, min, minForPoint);
+                   "ppm: Param = %s, value = %s, min = %s, minForPoint = %s, max = %s",
+                   word, value, min, minForPoint, max);
   
                 storeEntry(word, value, allowedParameters[nParam].iType,
-                           min, minForPoint, fileConf, numParam);
+                           min, minForPoint, max, fileConf, numParam);
             }
             else
             {
@@ -314,7 +327,7 @@ typeParam(char* param)
     while (fgets(line, 256, config) != NULL) {
         char *start = line;
         char *word, *value;
-        char *min, *minForPoint;;
+        char *min, *minForPoint, *max;
   
         while (isspace(*start) && isascii(*start))
             start++;
@@ -337,17 +350,21 @@ typeParam(char* param)
             if (minForPoint != NULL)
                 if (strchr(minForPoint, '\n') != NULL)
                     strchr(minForPoint, '\n')[0] = '\0';
+            max = strtok(NULL, " \t");
+            if (max != NULL)
+                if (strchr(max, '\n') != NULL)
+                    strchr(max, '\n')[0] = '\0';
   
   
             nParam = typeParam(word); // search for param in allowedParameters
             if (nParam != sAllowedParameters) // param has been found
             {
                 ppm_log(LOG_NOTICE,
-                   "ppm: Param = %s, value = %s, min = %s, minForPoint= %s",
-                   word, value, min, minForPoint);
+                   "ppm: Param = %s, value = %s, min = %s, minForPoint = %s, max = %s",
+                   word, value, min, minForPoint, max);
   
                 storeEntry(word, value, allowedParameters[nParam].iType,
-                           min, minForPoint, fileConf, numParam);
+                           min, minForPoint, max, fileConf, numParam);
             }
             else
             {
@@ -594,38 +611,38 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
 
     /* Set default values */
     conf fileConf[CONF_MAX_SIZE] = {
-        {"minQuality", typeInt, {.iVal = DEFAULT_QUALITY}, 0, 0
+        {"minQuality", typeInt, {.iVal = DEFAULT_QUALITY}, 0, 0, 0
          }
         ,
-        {"checkRDN", typeInt, {.iVal = 0}, 0, 0
+        {"checkRDN", typeInt, {.iVal = 0}, 0, 0, 0
          }
         ,
-        {"forbiddenChars", typeStr, {.sVal = ""}, 0, 0
+        {"forbiddenChars", typeStr, {.sVal = ""}, 0, 0, 0
          }
         ,
-        {"maxConsecutivePerClass", typeInt, {.iVal = 0}, 0, 0
+        {"maxConsecutivePerClass", typeInt, {.iVal = 0}, 0, 0, 0
          }
         ,
-        {"useCracklib", typeInt, {.iVal = 0}, 0, 0
+        {"useCracklib", typeInt, {.iVal = 0}, 0, 0, 0
          }
         ,
-        {"cracklibDict", typeStr, {.sVal = "/var/cache/cracklib/cracklib_dict"}, 0, 0
+        {"cracklibDict", typeStr, {.sVal = "/var/cache/cracklib/cracklib_dict"}, 0, 0, 0
          }
         ,
-        {"class-upperCase", typeStr, {.sVal = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}, 0, 1
+        {"class-upperCase", typeStr, {.sVal = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}, 0, 1, 0
          }
         ,
-        {"class-lowerCase", typeStr, {.sVal = "abcdefghijklmnopqrstuvwxyz"}, 0, 1
+        {"class-lowerCase", typeStr, {.sVal = "abcdefghijklmnopqrstuvwxyz"}, 0, 1, 0
          }
         ,
-        {"class-digit", typeStr, {.sVal = "0123456789"}, 0, 1
+        {"class-digit", typeStr, {.sVal = "0123456789"}, 0, 1, 0
          }
         ,
         {"class-special", typeStr,
-         {.sVal = "<>,?;.:/!§ù%*µ^¨$£²&é~\"#'{([-|è`_\\ç^à@)]°=}+"}, 0, 1
+         {.sVal = "<>,?;.:/!§ù%*µ^¨$£²&é~\"#'{([-|è`_\\ç^à@)]°=}+"}, 0, 1, 0
          }
         ,
-        {"checkAttributes", typeStr, {.sVal = ""}, 0, 0
+        {"checkAttributes", typeStr, {.sVal = ""}, 0, 0, 0
          }
     };
     numParam = 11;
@@ -656,6 +673,7 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
     /*The password must have at least minQuality strength points with one
      * point granted if the password contains at least minForPoint characters for each class
      * It must contains at least min chars of each class
+     * It must contains at most max chars of each class
      * It must not contain any char in forbiddenChar */
 
     for (i = 0; i < strlen(pPasswd); i++) {
@@ -698,7 +716,8 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
                 nQuality, minQuality);
         goto fail;
     }
-    // Password checking done, now loocking for constraintClass criteria
+
+    // Password checking done, now loocking for minimum criteria
     for (i = 0; i < CONF_MAX_SIZE; i++) {
         if (strstr(fileConf[i].param, "class-") != NULL) {
             if ((nbInClass[i] < fileConf[i].min) &&
@@ -709,11 +728,33 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
 #else
                 mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
 #endif
-                                                strlen(PASSWORD_CRITERIA) +
+                                                strlen(PASSWORD_MIN_CRITERIA) +
                                                 strlen(pEntry->e_nname.bv_val) + 
                                                 2 + PARAM_MAX_LEN);
-                sprintf(szErrStr, PASSWORD_CRITERIA, pEntry->e_nname.bv_val,
+                sprintf(szErrStr, PASSWORD_MIN_CRITERIA, pEntry->e_nname.bv_val,
                         fileConf[i].min, fileConf[i].param);
+                goto fail;
+            }
+        }
+    }
+
+    // Password checking done, now loocking for maximum criteria
+    for (i = 0; i < CONF_MAX_SIZE; i++) {
+        if (strstr(fileConf[i].param, "class-") != NULL) {
+            if ( (fileConf[i].max != 0) &&
+                 (nbInClass[i] > fileConf[i].max) &&
+                 strlen(fileConf[i].value.sVal) != 0) {
+                // constraint is not satisfied... goto fail
+#if OLDAP_VERSION == OLDAP25
+                mem_len = realloc_error_message(&szErrStr, mem_len,
+#else
+                mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
+#endif
+                                                strlen(PASSWORD_MAX_CRITERIA) +
+                                                strlen(pEntry->e_nname.bv_val) + 
+                                                2 + PARAM_MAX_LEN);
+                sprintf(szErrStr, PASSWORD_MAX_CRITERIA, pEntry->e_nname.bv_val,
+                        fileConf[i].max, fileConf[i].param);
                 goto fail;
             }
         }
