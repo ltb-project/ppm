@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
           );
 
     /* format user entry */
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
     char *errmsg = NULL;
 #else
     char errbuf[256];
@@ -56,14 +56,14 @@ int main(int argc, char *argv[])
     }
     else
     {
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
       printf("Password failed checks : %s\n", errmsg);
 #else
       printf("Password failed checks : %s\n", errmsg.bv_val);
 #endif
     }
 
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
     ber_memfree(errmsg);
 #else
     if (errmsg.bv_val != errbuf)

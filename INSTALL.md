@@ -26,7 +26,6 @@ You can optionally customize some variables if you don't want the default ones:
               provided example file is only helpful as an example or for testing
     CRACKLIB: if defined, link against cracklib
     DEBUG: If defined, ppm logs its actions with syslog
-    OLDAP_VERSION: tell ppm for which version of OpenLDAP to compile (25 for OpenLDAP 2.5.X or 26 for OpenLDAP 2.6.X)
 
 
 To build ppm, simply run these commands:
@@ -44,8 +43,8 @@ Here is an illustrative example showing how to overload some options:
 
 ```
 make clean
-make LDAP_SRC=../../.. prefix=/usr/local libdir=/usr/local/lib OLDAP_VERSION=26
-make test LDAP_SRC=../../.. OLDAP_VERSION=26
+make LDAP_SRC=../../.. prefix=/usr/local libdir=/usr/local/lib
+make test LDAP_SRC=../../..
 make doc prefix=/usr/local
 make install prefix=/usr/local libdir=/usr/local/lib
 ```

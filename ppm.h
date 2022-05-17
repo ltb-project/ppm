@@ -18,12 +18,10 @@
 #include <syslog.h>
 #endif
 
-// Default OpenLDAP version if undefined
-#define OLDAP25 25
-#define OLDAP26 26
-#ifndef OLDAP_VERSION
-#define OLDAP_VERSION OLDAP26
-#endif
+// Get OpenLDAP version
+#define OLDAP_VERSION ((LDAP_VENDOR_VERSION_MAJOR << 8) | LDAP_VENDOR_VERSION_MINOR)
+// OLDAP_VERSION = 0x0205 // (v2.5)
+// OLDAP_VERSION = 0x0206 // (v2.6)
 
 //#define PPM_READ_FILE 1       // old deprecated configuration mode
                                 // 1: (deprecated) don't read pwdCheckModuleArg
@@ -38,7 +36,7 @@
 
 #define DEFAULT_QUALITY                   3
 #define MEMORY_MARGIN                     50
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
   #define MEM_INIT_SZ                     64
 #endif
 #define DN_MAX_LEN                        512
@@ -128,7 +126,7 @@ int min(char *str1, char *str2);
   static void read_config_file(conf * fileConf, int *numParam, char *ppm_config_file);
 #endif
 
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
   int check_password(char *pPasswd, char **ppErrStr, Entry *e, void *pArg);
 #else
   int check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg);

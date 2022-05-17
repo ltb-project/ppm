@@ -381,7 +381,7 @@ typeParam(char* param)
 #endif
 
 static int
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
 realloc_error_message(char **target, int curlen, int nextlen)
 #else
 realloc_error_message(const char *orig, char **target, int curlen, int nextlen)
@@ -391,7 +391,7 @@ realloc_error_message(const char *orig, char **target, int curlen, int nextlen)
         ppm_log(LOG_WARNING,
                "ppm: Reallocating szErrStr from %d to %d", curlen,
                nextlen + MEMORY_MARGIN);
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
         ber_memfree(*target);
 #else
         if (*target != orig)
@@ -540,7 +540,7 @@ containsAttributes(char* passwd, Entry* pEntry, char* checkAttributes)
 
 
 int
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
 check_password(char *pPasswd, char **ppErrStr, Entry *e, void *pArg)
 #else
 check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
@@ -549,7 +549,7 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
 
     Entry *pEntry = e;
     struct berval *pwdCheckModuleArg = pArg;
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
     char *szErrStr = (char *) ber_memalloc(MEM_INIT_SZ);
     int mem_len = MEM_INIT_SZ;
 #else
@@ -592,7 +592,7 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
 #else
     if ( !pwdCheckModuleArg || !pwdCheckModuleArg->bv_val ) {
         ppm_log(LOG_ERR, "ppm: No config provided in pwdCheckModuleArg");
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
         mem_len = realloc_error_message(&szErrStr, mem_len,
 #else
         mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
@@ -705,7 +705,7 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
     }
 
     if (nQuality < minQuality) {
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
         mem_len = realloc_error_message(&szErrStr, mem_len,
 #else
         mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
@@ -723,7 +723,7 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
             if ((nbInClass[i] < fileConf[i].min) &&
                  strlen(fileConf[i].value.sVal) != 0) {
                 // constraint is not satisfied... goto fail
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
                 mem_len = realloc_error_message(&szErrStr, mem_len,
 #else
                 mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
@@ -745,7 +745,7 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
                  (nbInClass[i] > fileConf[i].max) &&
                  strlen(fileConf[i].value.sVal) != 0) {
                 // constraint is not satisfied... goto fail
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
                 mem_len = realloc_error_message(&szErrStr, mem_len,
 #else
                 mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
@@ -762,7 +762,7 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
 
     // Password checking done, now loocking for forbiddenChars criteria
     if (nForbiddenChars > 0) {  // at least 1 forbidden char... goto fail
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
         mem_len = realloc_error_message(&szErrStr, mem_len,
 #else
         mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
@@ -784,7 +784,7 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
                 // Too much consecutive characters of the same class
                 ppm_log(LOG_NOTICE, "ppm: Too much consecutive chars for class %s",
                        fileConf[i].param);
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
                 mem_len = realloc_error_message(&szErrStr, mem_len,
 #else
                 mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
@@ -808,7 +808,7 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
             if (( fd = fopen ( cracklibDictFiles[j], "r")) == NULL ) {
                 ppm_log(LOG_NOTICE, "ppm: Error while reading %s file",
                        cracklibDictFiles[j]);
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
                 mem_len = realloc_error_message(&szErrStr, mem_len,
 #else
                 mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
@@ -826,7 +826,7 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
         if ( res != NULL ) {
                 ppm_log(LOG_NOTICE, "ppm: cracklib does not validate password for entry %s",
                        pEntry->e_nname.bv_val);
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
                 mem_len = realloc_error_message(&szErrStr, mem_len,
 #else
                 mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
@@ -845,7 +845,7 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
     if (checkRDN == 1 && containsRDN(pPasswd, pEntry->e_nname.bv_val))
     // RDN check enabled and a token from RDN is found in password: goto fail
     {
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
         mem_len = realloc_error_message(&szErrStr, mem_len,
 #else
         mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
@@ -862,7 +862,7 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
          containsAttributes(pPasswd, pEntry, checkAttributes))
     // A token from an attribute is found in password: goto fail
     {
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
         mem_len = realloc_error_message(&szErrStr, mem_len,
 #else
         mem_len = realloc_error_message(origmsg, &szErrStr, mem_len,
@@ -874,7 +874,7 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
         goto fail;
     }
 
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
     *ppErrStr = strdup("");
     ber_memfree(szErrStr);
 #else
@@ -883,7 +883,7 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
     return (LDAP_SUCCESS);
 
   fail:
-#if OLDAP_VERSION == OLDAP25
+#if OLDAP_VERSION == 0x0205
     *ppErrStr = strdup(szErrStr);
     ber_memfree(szErrStr);
 #else
