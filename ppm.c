@@ -691,7 +691,7 @@ check_password(char *pPasswd, struct berval *ppErrmsg, Entry *e, void *pArg)
         }
     }
 
-    // Password checking done, now loocking for minForPoint criteria
+    // Password checking done, now looking for minForPoint criteria
     for (i = 0; i < numParam; i++) {
         if (strstr(fileConf[i].param, "class-") != NULL) {
             if ((nbInClass[i] >= fileConf[i].minForPoint)
